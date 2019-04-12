@@ -1,0 +1,537 @@
+from mesa import Model, Agent
+import mesa
+from mesa.time import RandomActivation
+from mesa.space import MultiGrid
+from mesa.datacollection import DataCollector
+from scipy.spatial import distance, Voronoi, voronoi_plot_2d
+import pandas as pd
+import numpy as np
+import random
+from collections import Counter
+
+print("mesa",mesa.__file__)
+
+
+class SchoolAgent(Agent):
+    '''
+
+    '''
+    def __init__(self, pos, model):
+
+        super().__init__(pos, model)
+
+        self.students = []
+        self.type = 2
+        self.position = pos
+
+
+
+        # measures
+        self.local_composition = [0,0]
+        # TODO: households for now: change to students
+        self.capacity = 0
+
+    def step(self):
+        pass
+
+    def get_local_composition(self):
+
+        local_composition = [0,0]
+        d = [student.type for student in self.students]
+
+        for agent_type in range(len(self.model.household_types)):
+            local_composition[agent_type] = d.count(agent_type)
+
+        self.local_composition = local_composition
+
+        #if self == self.model.schools[2]:
+        #    print("after",self.local_composition)
+
+        self.current_capacity = np.sum(self.local_composition)
+
+        return(local_composition)
+
+
+class HouseholdAgent(Agent):
+    '''
+    Schelling segregation agent
+    '''
+    def __init__(self, pos, model, agent_type):
+        '''
+         Create a new Schelling agent.
+
+         Args:
+            unique_id: Unique identifier for the agent.
+            x, y: Agent initial location.
+            agent_type: Indicator for the agent's type (minority=1, majority=0)
+        '''
+        super().__init__(pos, model)
+        self.type = agent_type
+        self.f = model.f[agent_type]
+        self.M = model.M[agent_type]
+        self.T = 0.6
+        self.children = 1
+        self.school = None
+        self.dist_to_school = None
+        self.local_composition = None
+        self.position = pos
+
+
+
+
+
+    def calculate_distances(self):
+        '''
+        calculate distance between school and household
+        Euclidean or gis shortest road route
+        :return: dist
+        '''
+        Dj = np.zeros((len(self.model.school_locations),1))
+        for i, loc in enumerate(self.model.school_locations):
+            Dj[i] = np.linalg.norm(np.array(self.position)- np.array(loc))
+        self.Dj = Dj
+
+
+
+    def step(self):
+
+
+        # satisfaction in current schol
+        U = self.satisfaction(self.school, self.dist_to_school)
+        # If unhappy, compared to threshold move:
+        if U < self.T:
+            #print('unhappy')
+            if self.model.deterministic == True:
+                self.evaluate_move(U)
+            else:
+                self.evaluate_move_boltzmann(U)
+        else:
+            self.model.happy += 1
+            self.model.percent_happy = self.model.happy/self.model.num_households
+
+
+
+    def allocate(self, school, dist):
+
+        self.school = school
+        school.students.append(self)
+        self.dist_to_school = dist
+
+
+
+    def evaluate_move_boltzmann(self, U):
+
+        # consider each school at random
+        # for candidate_school in random.sample(self.model.schools, len(self.model.schools)):
+        random_order = np.random.permutation(len(self.model.schools))
+        for school_index in random_order:
+            #print("index",school_index)
+
+            candidate_school = self.model.schools[school_index]
+
+            if candidate_school.current_capacity <= (candidate_school.capacity + 10) and candidate_school!=self.school:
+                U_candidate = self.satisfaction(candidate_school,dist=self.Dj[school_index])
+                #print("U_cand,U",U_candidate,U)
+                pr_move = self.prob_move(U,U_candidate)
+
+                if pr_move >= random.random():
+                    self.model.total_moves +=1
+                    # remove the student from the school
+
+                    self.move_school(school_index,candidate_school)
+                    break
+
+    def evaluate_move(self,U, proportional = False):
+        # choose proportional or deterministic
+
+        utilities = []
+        for school_index, candidate_school in enumerate(self.model.schools):
+
+            # check whether school is eligible to move to
+             #if candidate_school.current_capacity <= (candidate_school.capacity + 10) and candidate_school!=self.school:
+             if candidate_school.current_capacity <= (candidate_school.capacity + 10):
+                 utilities.append(self.satisfaction(candidate_school,dist=self.Dj[school_index]))
+             else:
+                 utilities.append(0)
+             #print(self.pos, candidate_school.pos, candidate_school.unique_id,self.Dj[school_index] )
+
+        probabilities = utilities / np.sum(utilities)
+        #print("utilities",utilities)
+        #print(probabilities)
+        if proportional:
+            index_to_move = np.random.choice(len(probabilities), p=probabilities)
+        else:
+            index_to_move = np.argmax(probabilities)
+
+        # only
+        if self.model.schools[index_to_move] != self.school:
+            self.move_school(index_to_move,self.model.schools[index_to_move])
+            self.model.total_moves +=1
+
+
+    def move_school(self, school_index, new_school):
+        self.school.students.remove(self)
+
+        # update metrics for school - could be replaced by +-1
+        self.school.get_local_composition()
+
+        # allocate elsewhere
+        self.allocate(new_school, self.Dj[school_index])
+        # now update the new school
+        self.school.get_local_composition()
+
+
+    def prob_move(self,U, U_candidate):
+
+        deltaU = U_candidate-U
+
+        return(1/(1+np.exp(-deltaU/self.model.temp)))
+
+
+    #@property
+    def satisfaction(self, school, dist):
+
+        # x: local number of agents of own group
+        # p: total number of agents in the school
+        x = school.get_local_composition()[self.type]
+        p = np.sum(school.get_local_composition())
+
+        # satisfaction
+        fp = self.f * p
+
+        #print(x,p)
+        P=0
+        dist = float(dist)
+
+        if self.type in [0,1]:
+
+            # assymetric satisfaction for minority
+            if fp==0:
+                P=0
+            elif x <= fp:
+                P=x/fp
+
+            else:
+                P = self.M + (p-x)*(1-self.M)/(p*(1-self.f))
+
+
+
+        #
+        # elif self.type ==0:
+        #     if fp ==0:
+        #         P=0
+        #     if x <= fp:
+        #         P=np.divide(x,fp)
+        #         print("\nmajority", P)
+        #     else:
+        #         P = 1
+
+        D = (self.model.max_dist - dist) / self.model.max_dist
+        #print("D", D)
+        #print("P,D",P,D)
+        U = P**(self.model.alpha) * D**(1-self.model.alpha)
+        #print("U",U)
+
+        return(U)
+
+
+
+
+class SchoolModel(Model):
+    '''
+    Model class for the Schelling segregation model.
+    '''
+
+    def __init__(self, height=100, width=100, density=0.8, num_schools=4,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6, M0=0.8,M1=0.8,
+                 alpha=0.8, temp=0.3, cap_max=1.5, deterministic=False):
+        '''
+        '''
+
+        self.height = height
+        self.width = width
+        self.density = density
+        self.num_schools= num_schools
+        self.homophily = homophily
+        self.f = [f0,f1]
+        self.M = [M0,M1]
+
+        self.households = []
+        self.schools = []
+
+        self.minority_pc = minority_pc
+        self.household_types = [0,1]
+
+        # choice parameters
+        self.alpha = alpha
+        self.temp = temp
+
+        self.num_households = int(width*height*density)
+        self.schedule = RandomActivation(self)
+        self.grid = MultiGrid(height, width, torus=False)
+        self.total_moves = 0
+
+        self.deterministic = deterministic
+
+        self.school_locations = []
+        self.household_locations = []
+        self.Dij = []
+
+
+        self.happy = 0
+        self.percent_happy = 0
+        self.seg_index = 0
+        self.comp0,self.comp1,self.comp2,self.comp3,self.comp4,self.comp5,self.comp6,self.comp7 = 0,0,0,0,0,0,0,0
+
+        self.compositions = []
+
+
+
+
+
+        self.my_collector = []
+        self.max_dist = self.height*np.sqrt(2)
+
+
+
+        # Set up agents
+        # We use a grid iterator that returns
+        # the coordinates of a cell as well as
+        # its contents. (coord_iter)
+        # Set up schools
+
+        school_positions = [(width/4,height/4),(width*3/4,height/4),(width/4,height*3/4),(width*3/4,height*3/4)]
+        print("locations",school_positions)
+        for i in range(self.num_schools):
+            #Add the agent to a random grid cell
+            x = random.randrange(self.grid.width)
+            y = random.randrange(self.grid.height)
+            pos = (int(school_positions[i][0]),int(school_positions[i][1]))
+            self.school_locations.append(pos)
+            school = SchoolAgent(pos, self)
+            self.grid.place_agent(school, school.unique_id)
+            print("position",pos,school.pos)
+            self.schools.append(school)
+            self.schedule.add(school)
+            print("school_pos",school.unique_id)
+
+        # Set up households
+
+
+        # create household locations but dont create agents yet
+
+
+        while len(self.household_locations) < self.num_households:
+
+            #Add the agent to a random grid cell
+            x = random.randrange(self.grid.width)
+            y = random.randrange(self.grid.height)
+            pos = (x,y)
+
+            if (pos not in (self.school_locations) ) and (pos not in self.household_locations):
+                self.household_locations.append(pos)
+
+
+        # for cell in self.grid.coord_iter():
+        #
+        #     pos = (cell[1], cell[2])
+        #     if pos not in self.school_locatio:
+        #         if self.random.random() < self.density:
+        #             self.household_locations.append(pos)
+
+
+
+        Dij = self.calculate_distances()
+
+        #print(Dij)
+
+        for ind, pos in enumerate(self.household_locations):
+            # create a school or create a household
+
+            if ind < int(self.minority_pc*self.num_households):
+                agent_type = self.household_types[1]
+            else:
+                agent_type = self.household_types[0]
+
+
+            agent = HouseholdAgent(pos, self, agent_type)
+            decorator_agent = HouseholdAgent(pos, self, agent_type)
+
+            self.grid.place_agent(agent, agent.unique_id)
+
+            self.grid.place_agent(decorator_agent, pos)
+
+
+
+
+
+            agent.calculate_distances()
+
+            self.households.append(agent)
+
+
+
+
+            random_school_index = random.randint(0, len(self.schools)-1)
+            candidate_school = self.schools[random_school_index]
+            agent.allocate(candidate_school,agent.Dj[random_school_index])
+
+            #closer_school = self.schools[np.argmin(Dj)]
+            #closer_school.students.append(agent)
+           # agent.allocate(closer_school, np.min(Dj))
+            #print(agent.school.unique_id)
+
+
+
+            self.schedule.add(agent)
+
+        self.pi_jm = np.zeros(shape=(len(self.school_locations),len(self.household_types )))
+        self.local_compositions =  np.zeros(shape=(len(self.school_locations),len(self.household_types )))
+        self.avg_school_size = round(density*width*height/(len(self.schools)))
+
+        self.datacollector = DataCollector(
+            model_reporters={"agent_count":
+                                 lambda m: m.schedule.get_agent_count(), "seg_index": "seg_index",
+                             "happy": "happy", "percent_happy": "percent_happy",
+                             "total_moves": "total_moves", "compositions0": "compositions0",
+                             "compositions1": "compositions1",
+                                     "comp0": "comp0", "comp1": "comp1", "comp2": "comp2", "comp3": "comp3", "comp4": "comp4", "comp5": "comp5", "comp6": "comp6",
+                             "comp7": "comp7","compositions": "compositions"},
+            agent_reporters={"local_composition": "local_composition", "type": lambda a: a.type,
+                             "id": lambda a: a.unique_id, })
+
+
+        # Calculate local composition
+        # set size
+        for school in self.schools:
+            school.get_local_composition()
+            cap = round(np.random.normal(loc=cap_max * self.avg_school_size, scale=self.avg_school_size * 0.05))
+
+            school.capacity = cap
+        segregation_index(self)
+        #
+
+
+
+
+
+        #vor = Voronoi(self.school_locations)
+
+       # def is_cell_in_voronoi():
+
+
+        self.running = True
+        self.datacollector.collect(self)
+
+
+
+
+    def calculate_distances(self):
+        '''
+        calculate distance between school and household
+        Euclidean or gis shortest road route
+        :return: dist
+        '''
+
+        Dij = distance.cdist(np.array(self.household_locations), np.array(self.school_locations), 'euclidean')
+        return(Dij)
+
+
+
+
+    def step(self):
+        '''
+        Run one step of the model. If All agents are happy, halt the model.
+        '''
+        self.happy = 0  # Reset counter of happy agents
+        self.total_moves = 0
+
+        self.schedule.step()
+        print("happy", self.happy)
+        self.seg_index = segregation_index(self)
+
+
+
+
+        if self.happy == self.schedule.get_agent_count():
+            self.running = False
+        compositions = []
+        for school in self.schools:
+            print(self.schedule.steps, school.unique_id,"final_composition",school.get_local_composition())
+            self.my_collector.append([self.schedule.steps, school.unique_id, school.get_local_composition()])
+            self.compositions = school.get_local_composition()
+            print(self.local_compositions)
+            compositions.append(school.get_local_composition()[0])
+            compositions.append(school.get_local_composition()[1])
+
+            self.compositions1 = int(school.get_local_composition()[1])
+            self.compositions0 = int(school.get_local_composition()[0])
+
+        print("comps",compositions,np.sum(compositions) )
+        [self.comp0,self.comp1,self.comp2,self.comp3,self.comp4,self.comp5,self.comp6,self.comp7] = compositions
+        # collect data
+        self.datacollector.collect(self)
+        print("moves",self.total_moves, "percent_happy", self.percent_happy)
+
+
+
+
+
+
+
+def segregation_index(model):
+    # pi_jm: proportions in unit j that belongs to group m, shape: (j,m) (schools,groups)
+    # pm: proportion in group m (m,1)
+
+
+
+    # tj: total number in group j - dim: (1,j)
+
+
+    pi_jm = np.zeros(shape=(len(model.school_locations), len(model.household_types)))
+    local_compositions = np.zeros(shape=(len(model.school_locations), len(model.household_types)))
+
+
+    for s_ind, school in enumerate(model.schools):
+        local_composition = school.get_local_composition()
+
+        local_compositions[s_ind][:] = local_composition
+        pi_jm[s_ind][:] = local_composition / np.sum(local_composition)
+
+        model.local_compositions = local_compositions
+        model.pi_jm = pi_jm
+    print(local_compositions, pi_jm)
+
+
+    T=np.sum(local_compositions)
+
+    tj = np.sum(local_compositions,axis=1, keepdims=True)
+    print("tj,",tj)
+
+    pm = np.sum(pi_jm,axis=0)/np.sum(pi_jm, keepdims=True)
+    print("pm",pm)
+
+    E = np.sum(pm*np.log(1/pm))
+    print("E", E)
+
+    print("tj/TE",tj / (T * E))
+    print("pi_jm",pi_jm)
+    print("pm",pm)
+    print("pi_jm/pm",pi_jm/pm)
+
+    seg_index = np.sum(tj / (T*E) * pi_jm * np.ma.log(pi_jm/pm), axis=None)
+
+    print("seg_index",seg_index)
+
+    return(seg_index)
+
+
+def dissimilarity_index(model):
+    for s_ind, school in enumerate(model.schools):
+        local_composition = school.get_local_composition()
+        model.pi_jm[s_ind][:] = local_composition
+
+    pi_jm = model.pi_jm
+    T=np.sum(pi_jm)
+    tj = np.sum(pi_jm,axis=0, keepdims=True)
+    pm = np.sum(pi_jm, axis=1, keepdims=True)
+

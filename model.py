@@ -69,7 +69,7 @@ class HouseholdAgent(Agent):
         self.type = agent_type
         self.f = model.f[agent_type]
         self.M = model.M[agent_type]
-        self.T = 0.6
+        self.T = 0.75
         self.children = 1
         self.school = None
         self.dist_to_school = None
@@ -95,19 +95,22 @@ class HouseholdAgent(Agent):
 
     def step(self):
 
+        self.model.total_considered += 1
 
-        # satisfaction in current schol
-        U = self.satisfaction(self.school, self.dist_to_school)
-        # If unhappy, compared to threshold move:
-        if U < self.T:
-            #print('unhappy')
-            if self.model.deterministic == True:
-                self.evaluate_move(U)
+        if self.model.total_considered < 500:
+
+            # satisfaction in current schol
+            U = self.satisfaction(self.school, self.dist_to_school)
+            # If unhappy, compared to threshold move:
+            if U < self.T:
+                #print('unhappy')
+                if self.model.deterministic == True:
+                    self.evaluate_move(U)
+                else:
+                    self.evaluate_move_boltzmann(U)
             else:
-                self.evaluate_move_boltzmann(U)
-        else:
-            self.model.happy += 1
-            self.model.percent_happy = self.model.happy/self.model.num_households
+                self.model.happy += 1
+                self.model.percent_happy = self.model.happy/self.model.num_households
 
 
 
@@ -242,11 +245,11 @@ class SchoolModel(Model):
     Model class for the Schelling segregation model.
     '''
 
-    def __init__(self, height=100, width=100, density=0.8, num_schools=4,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6, M0=0.8,M1=0.8,
-                 alpha=0.8, temp=0.3, cap_max=1.5, deterministic=False):
+    def __init__(self, height=100, width=100, density=0.8, num_schools=5,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6, M0=0.8,M1=0.8,
+                 alpha=0.4, temp=0.3, cap_max=1.5, deterministic=True):
         '''
         '''
-
+        # Options  for the model
         self.height = height
         self.width = width
         self.density = density
@@ -255,15 +258,20 @@ class SchoolModel(Model):
         self.f = [f0,f1]
         self.M = [M0,M1]
 
-        self.households = []
-        self.schools = []
 
-        self.minority_pc = minority_pc
-        self.household_types = [0,1]
+        self.household_types = [0, 1]
+        self.symmetric_positions = False
+
 
         # choice parameters
         self.alpha = alpha
         self.temp = temp
+
+        self.households = []
+        self.schools = []
+
+        self.minority_pc = minority_pc
+
 
         self.num_households = int(width*height*density)
         self.schedule = RandomActivation(self)
@@ -288,6 +296,7 @@ class SchoolModel(Model):
 
 
 
+
         self.my_collector = []
         self.max_dist = self.height*np.sqrt(2)
 
@@ -299,13 +308,18 @@ class SchoolModel(Model):
         # its contents. (coord_iter)
         # Set up schools
 
+
         school_positions = [(width/4,height/4),(width*3/4,height/4),(width/4,height*3/4),(width*3/4,height*3/4)]
         print("locations",school_positions)
         for i in range(self.num_schools):
             #Add the agent to a random grid cell
             x = random.randrange(self.grid.width)
             y = random.randrange(self.grid.height)
-            pos = (int(school_positions[i][0]),int(school_positions[i][1]))
+
+            if self.symmetric_positions:
+                pos = (int(school_positions[i][0]),int(school_positions[i][1]))
+            else:
+                pos = (x,y)
             self.school_locations.append(pos)
             school = SchoolAgent(pos, self)
             self.grid.place_agent(school, school.unique_id)
@@ -418,7 +432,7 @@ class SchoolModel(Model):
 
        # def is_cell_in_voronoi():
 
-
+        self.total_considered = 0
         self.running = True
         self.datacollector.collect(self)
 
@@ -444,11 +458,13 @@ class SchoolModel(Model):
         '''
         self.happy = 0  # Reset counter of happy agents
         self.total_moves = 0
+        self.total_considered = 0
 
         self.schedule.step()
         print("happy", self.happy)
-        self.seg_index = segregation_index(self)
+        print("total_considere", self.total_considered)
 
+        self.seg_index = segregation_index(self)
 
 
 
@@ -467,7 +483,7 @@ class SchoolModel(Model):
             self.compositions0 = int(school.get_local_composition()[0])
 
         print("comps",compositions,np.sum(compositions) )
-        [self.comp0,self.comp1,self.comp2,self.comp3,self.comp4,self.comp5,self.comp6,self.comp7] = compositions
+        [self.comp0,self.comp1,self.comp2,self.comp3,self.comp4,self.comp5,self.comp6,self.comp7] = compositions[0:8]
         # collect data
         self.datacollector.collect(self)
         print("moves",self.total_moves, "percent_happy", self.percent_happy)
@@ -505,18 +521,17 @@ def segregation_index(model):
     T=np.sum(local_compositions)
 
     tj = np.sum(local_compositions,axis=1, keepdims=True)
-    print("tj,",tj)
+    #print("tj,",tj)
 
     pm = np.sum(pi_jm,axis=0)/np.sum(pi_jm, keepdims=True)
-    print("pm",pm)
+    #print("pm",pm)
 
     E = np.sum(pm*np.log(1/pm))
-    print("E", E)
 
-    print("tj/TE",tj / (T * E))
-    print("pi_jm",pi_jm)
-    print("pm",pm)
-    print("pi_jm/pm",pi_jm/pm)
+    #print("tj/TE",tj / (T * E))
+    #print("pi_jm",pi_jm)
+    #print("pm",pm)
+    #print("pi_jm/pm",pi_jm/pm)
 
     seg_index = np.sum(tj / (T*E) * pi_jm * np.ma.log(pi_jm/pm), axis=None)
 
@@ -526,6 +541,7 @@ def segregation_index(model):
 
 
 def dissimilarity_index(model):
+
     for s_ind, school in enumerate(model.schools):
         local_composition = school.get_local_composition()
         model.pi_jm[s_ind][:] = local_composition

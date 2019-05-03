@@ -142,7 +142,7 @@ def schelling_draw(agent):
 
 
 happy_element = HappyElement()
-canvas_element = CanvasGrid(schelling_draw, 80, 80, 500, 500)
+canvas_element = CanvasGrid(schelling_draw, 120,120, 500, 500)
 
 compositions_chart = BarChartModule([{"Label": "comp0", "Color": "Black"}, {"Label": "comp1", "Color": "Blue"},
                               {"Label": "comp2", "Color": "Black"}, {"Label": "comp3", "Color": "Blue"},
@@ -155,8 +155,8 @@ histogram = HistogramModule(list(range(10)), 200, 500)
 
 
 model_params = {
-    "height": 80,
-    "width": 80,
+    "height": 120,
+    "width": 120,
     "density": UserSettableParameter("slider", "Agent density", 0.8, 0.1, 1.0, 0.1),
     "minority_pc": UserSettableParameter("slider", "Fraction minority", 0.5, 0.00, 1.0, 0.05),
     "f0": UserSettableParameter("slider", "f0", 0.6, 0.1,0.9,0.1),

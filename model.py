@@ -231,9 +231,9 @@ class HouseholdAgent(Agent):
 
         D = (self.model.max_dist - dist) / self.model.max_dist
         #print("D", D)
-        #print("P,D",P,D)
+        #print("P,D,U",P,D,U)
         U = P**(self.model.alpha) * D**(1-self.model.alpha)
-        #print("U",U)
+        #print("P,D,U",P,D,U)
 
         return(U)
 
@@ -245,8 +245,8 @@ class SchoolModel(Model):
     Model class for the Schelling segregation model.
     '''
 
-    def __init__(self, height=100, width=100, density=0.8, num_schools=5,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6, M0=0.8,M1=0.8,
-                 alpha=0.4, temp=0.3, cap_max=1.5, deterministic=True):
+    def __init__(self, height=100, width=100, density=0.8, num_schools=4,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6, M0=0.8,M1=0.8,
+                 alpha=0.4, temp=0.3, cap_max=1.5, deterministic=True, symmetric_positions=True):
         '''
         '''
         # Options  for the model
@@ -260,7 +260,7 @@ class SchoolModel(Model):
 
 
         self.household_types = [0, 1]
-        self.symmetric_positions = False
+        self.symmetric_positions = symmetric_positions
 
 
         # choice parameters
@@ -462,7 +462,7 @@ class SchoolModel(Model):
 
         self.schedule.step()
         print("happy", self.happy)
-        print("total_considere", self.total_considered)
+        print("total_considered", self.total_considered)
 
         self.seg_index = segregation_index(self)
 

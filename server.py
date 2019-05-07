@@ -164,7 +164,7 @@ model_params = {
     "M0": UserSettableParameter("slider", "M0", 0.8, 0.1, 0.9, 0.1),
     "M1": UserSettableParameter("slider", "M1", 0.8, 0.1, 0.9, 0.1),
     "cap_max": UserSettableParameter("slider", "max capacity", 2, 1.0, 5, 0.1),
-    "alpha": UserSettableParameter("slider", "alpha", 0.6, 0.0, 0.9, 0.1),
+    "alpha": UserSettableParameter("slider", "alpha", 0.3, 0.0, 0.9, 0.1),
     "temp": UserSettableParameter("slider", "temp", 0.1, 0.0, 0.9, 0.1)
 }
 

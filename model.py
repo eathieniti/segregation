@@ -1,7 +1,7 @@
 from mesa import Model, Agent
 import mesa
 from mesa.time import RandomActivation
-from mesa.space import MultiGrid
+from mesa.space import MultiGrid, SingleGrid
 from mesa.datacollection import DataCollector
 from scipy.spatial import distance, Voronoi, voronoi_plot_2d
 import pandas as pd
@@ -36,20 +36,26 @@ class SchoolAgent(Agent):
 
     def get_local_composition(self):
 
-        local_composition = [0,0]
-        d = [student.type for student in self.students]
-
-        for agent_type in range(len(self.model.household_types)):
-            local_composition[agent_type] = d.count(agent_type)
+        local_composition = self.get_counts(self.students)
 
         self.local_composition = local_composition
-
-        #if self == self.model.schools[2]:
-        #    print("after",self.local_composition)
 
         self.current_capacity = np.sum(self.local_composition)
 
         return(local_composition)
+
+
+    def get_counts(self,students):
+
+        local_composition = [0,0]
+        d = [student.type for student in students]
+
+        for agent_type in range(len(self.model.household_types)):
+            local_composition[agent_type] = d.count(agent_type)
+
+        return(local_composition)
+
+
 
 
 class HouseholdAgent(Agent):
@@ -90,29 +96,64 @@ class HouseholdAgent(Agent):
         for i, loc in enumerate(self.model.school_locations):
             Dj[i] = np.linalg.norm(np.array(self.position)- np.array(loc))
         self.Dj = Dj
+        #print("calculating distances", Dj)
 
 
 
     def step(self):
-
         self.model.total_considered += 1
+        if self.model.schedule.steps < self.model.residential_steps:
+            residential_move = True
+        else:
+            residential_move = False
 
-        if self.model.total_considered < 500:
 
-            # satisfaction in current schol
-            U = self.satisfaction(self.school, self.dist_to_school)
-            # If unhappy, compared to threshold move:
-            if U < self.T:
-                #print('unhappy')
-                if self.model.deterministic == True:
-                    self.evaluate_move(U)
+        if residential_move:
+            #if self.model.total_considered < 500:
+                # move residential
+                U_res = self.get_res_satisfaction()
+               # print("U_res",U_res)
+                if U_res < self.T:
+                    self.model.grid.move_to_empty(self)
                 else:
-                    self.evaluate_move_boltzmann(U)
-            else:
-                self.model.happy += 1
-                self.model.percent_happy = self.model.happy/self.model.num_households
+                    self.model.res_happy += 1
+
+        else:
+            if self.model.total_considered < 500:
+            # school moves
+                # satisfaction in current school
+                U = self.get_school_satisfaction(self.school, self.dist_to_school)
+
+                # If unhappy, compared to threshold move:
+                if U < self.T:
+                    #print('unhappy')
+                    if self.model.deterministic == True:
+                        self.evaluate_move(U)
+                    else:
+                        self.evaluate_move_boltzmann(U)
+                else:
+                    self.model.happy += 1
+                    self.model.percent_happy = self.model.happy/self.model.total_considered
 
 
+
+
+    def get_res_satisfaction(self):
+        x=0
+        p=0
+
+        neighbours = self.model.grid.get_neighbors(self.pos, moore=True, radius=1)
+        for neighbour in neighbours:
+            if isinstance(neighbour, HouseholdAgent):
+                p += 1
+                if neighbour.type == self.type:
+                    x += 1
+
+
+        P = self.ethnic_utility(x=x, p=p)
+        self.res_satisfaction = P
+
+        return(P)
 
     def allocate(self, school, dist):
 
@@ -133,7 +174,7 @@ class HouseholdAgent(Agent):
             candidate_school = self.model.schools[school_index]
 
             if candidate_school.current_capacity <= (candidate_school.capacity + 10) and candidate_school!=self.school:
-                U_candidate = self.satisfaction(candidate_school,dist=self.Dj[school_index])
+                U_candidate = self.get_school_satisfaction(candidate_school,dist=self.Dj[school_index])
                 #print("U_cand,U",U_candidate,U)
                 pr_move = self.prob_move(U,U_candidate)
 
@@ -144,6 +185,8 @@ class HouseholdAgent(Agent):
                     self.move_school(school_index,candidate_school)
                     break
 
+
+
     def evaluate_move(self,U, proportional = False):
         # choose proportional or deterministic
 
@@ -153,7 +196,7 @@ class HouseholdAgent(Agent):
             # check whether school is eligible to move to
              #if candidate_school.current_capacity <= (candidate_school.capacity + 10) and candidate_school!=self.school:
              if candidate_school.current_capacity <= (candidate_school.capacity + 10):
-                 utilities.append(self.satisfaction(candidate_school,dist=self.Dj[school_index]))
+                 utilities.append(self.get_school_satisfaction(candidate_school,dist=self.Dj[school_index]))
              else:
                  utilities.append(0)
              #print(self.pos, candidate_school.pos, candidate_school.unique_id,self.Dj[school_index] )
@@ -192,52 +235,51 @@ class HouseholdAgent(Agent):
 
 
     #@property
-    def satisfaction(self, school, dist):
+    def get_school_satisfaction(self, school, dist):
+        # x: local number of agents of own group in the school or neighbourhood
+        # p: total number of agents in the school or neighbourhood
+        # For the schools we add the distance satisfaction
 
-        # x: local number of agents of own group
-        # p: total number of agents in the school
         x = school.get_local_composition()[self.type]
         p = np.sum(school.get_local_composition())
-
-        # satisfaction
-        fp = self.f * p
-
-        #print(x,p)
-        P=0
         dist = float(dist)
 
-        if self.type in [0,1]:
+        P = self.ethnic_utility(x,p)
 
-            # assymetric satisfaction for minority
-            if fp==0:
-                P=0
-            elif x <= fp:
-                P=x/fp
-
-            else:
-                P = self.M + (p-x)*(1-self.M)/(p*(1-self.f))
-
-
-
-        #
-        # elif self.type ==0:
-        #     if fp ==0:
-        #         P=0
-        #     if x <= fp:
-        #         P=np.divide(x,fp)
-        #         print("\nmajority", P)
-        #     else:
-        #         P = 1
 
         D = (self.model.max_dist - dist) / self.model.max_dist
         #print("D", D)
-        #print("P,D,U",P,D,U)
         U = P**(self.model.alpha) * D**(1-self.model.alpha)
         #print("P,D,U",P,D,U)
 
         return(U)
 
 
+    def ethnic_utility(self, x, p):
+
+        # x: local number of agents of own group in the school or neighbourhood
+        # p: total number of agents in the school or neighbourhood
+        # satisfaction
+        fp = float(self.f * p)
+        #print("fp,x",fp,x)
+
+
+        # print(x,p)
+        P = 0
+
+        if self.type in [0, 1]:
+
+            # assymetric satisfaction for minority
+            if fp == 0:
+                P = 0
+            elif x <= fp:
+                P = float(x) / fp
+
+            else:
+                P = self.M + (p - x) * (1 - self.M) / (p * (1 - self.f))
+
+
+        return(P)
 
 
 class SchoolModel(Model):
@@ -257,6 +299,7 @@ class SchoolModel(Model):
         self.homophily = homophily
         self.f = [f0,f1]
         self.M = [M0,M1]
+        self.residential_steps =0
 
 
         self.household_types = [0, 1]
@@ -275,7 +318,7 @@ class SchoolModel(Model):
 
         self.num_households = int(width*height*density)
         self.schedule = RandomActivation(self)
-        self.grid = MultiGrid(height, width, torus=False)
+        self.grid = SingleGrid(height, width, torus=False)
         self.total_moves = 0
 
         self.deterministic = deterministic
@@ -286,14 +329,14 @@ class SchoolModel(Model):
 
 
         self.happy = 0
+        self.res_happy = 0
         self.percent_happy = 0
         self.seg_index = 0
+        self.res_seg_index = 0
         self.comp0,self.comp1,self.comp2,self.comp3,self.comp4,self.comp5,self.comp6,self.comp7 = 0,0,0,0,0,0,0,0
+        self.satisfaction = []
 
         self.compositions = []
-
-
-
 
 
 
@@ -345,12 +388,6 @@ class SchoolModel(Model):
                 self.household_locations.append(pos)
 
 
-        # for cell in self.grid.coord_iter():
-        #
-        #     pos = (cell[1], cell[2])
-        #     if pos not in self.school_locatio:
-        #         if self.random.random() < self.density:
-        #             self.household_locations.append(pos)
 
 
 
@@ -368,22 +405,16 @@ class SchoolModel(Model):
 
 
             agent = HouseholdAgent(pos, self, agent_type)
-            decorator_agent = HouseholdAgent(pos, self, agent_type)
+            #decorator_agent = HouseholdAgent(pos, self, agent_type)
 
             self.grid.place_agent(agent, agent.unique_id)
 
-            self.grid.place_agent(decorator_agent, pos)
-
-
-
+            #self.grid.place_agent(decorator_agent, pos)
 
 
             agent.calculate_distances()
 
             self.households.append(agent)
-
-
-
 
             random_school_index = random.randint(0, len(self.schools)-1)
             candidate_school = self.schools[random_school_index]
@@ -424,13 +455,11 @@ class SchoolModel(Model):
         segregation_index(self)
         #
 
-
-
-
-
-        #vor = Voronoi(self.school_locations)
-
-       # def is_cell_in_voronoi():
+        print("height = %d; width = %d; density = %.2f; num_schools = %d; minority_pc =  %.2f; homophily = %d; "
+              "f0 =  %.2f; f1 =  %.2f; M0 =  %.2f; M1 =  %.2f;\
+        alpha =  %.2f; temp =  %.2f; cap_max =  %.2f; deterministic = %s; symmetric_positions = %s"%(height,
+         width, density, num_schools,minority_pc,homophily,f0,f1, M0,M1,alpha,
+                                       temp, cap_max, deterministic, symmetric_positions ))
 
         self.total_considered = 0
         self.running = True
@@ -457,14 +486,32 @@ class SchoolModel(Model):
         Run one step of the model. If All agents are happy, halt the model.
         '''
         self.happy = 0  # Reset counter of happy agents
+        self.res_happy = 0
         self.total_moves = 0
         self.total_considered = 0
 
+
         self.schedule.step()
+
         print("happy", self.happy)
         print("total_considered", self.total_considered)
 
         self.seg_index = segregation_index(self)
+        print("seg_index", self.seg_index, "res_seg_index", self.res_seg_index)
+
+        # Once residential steps are done calculate school distances
+
+
+
+        if self.schedule.steps < self.residential_steps - 1 or self.schedule.steps ==1 :
+
+            for school in self.schools:
+                school.neighbourhood_students = []
+
+            household_locations = []
+            for household in self.households:
+                household.calculate_distances()
+
 
 
 

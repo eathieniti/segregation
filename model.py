@@ -45,9 +45,10 @@ class SchoolAgent(Agent):
         return(local_composition)
 
 
-    def get_counts(self,students):
+    def get_counts(self, students):
 
-        local_composition = [0,0]
+        local_composition = [0, 0]
+
         d = [student.type for student in students]
 
         for agent_type in range(len(self.model.household_types)):
@@ -127,10 +128,8 @@ class HouseholdAgent(Agent):
                 # If unhappy, compared to threshold move:
                 if U < self.T:
                     #print('unhappy')
-                    if self.model.deterministic == True:
-                        self.evaluate_move(U)
-                    else:
-                        self.evaluate_move_boltzmann(U)
+                    self.evaluate_move(U)
+
                 else:
                     self.model.happy += 1
                     self.model.percent_happy = self.model.happy/self.model.total_considered
@@ -155,6 +154,8 @@ class HouseholdAgent(Agent):
 
         return(P)
 
+
+
     def allocate(self, school, dist):
 
         self.school = school
@@ -163,56 +164,81 @@ class HouseholdAgent(Agent):
 
 
 
-    def evaluate_move_boltzmann(self, U):
+    def evaluate_move(self,U):
 
-        # consider each school at random
-        # for candidate_school in random.sample(self.model.schools, len(self.model.schools)):
-        random_order = np.random.permutation(len(self.model.schools))
-        for school_index in random_order:
-            #print("index",school_index)
-
-            candidate_school = self.model.schools[school_index]
-
-            if candidate_school.current_capacity <= (candidate_school.capacity + 10) and candidate_school!=self.school:
-                U_candidate = self.get_school_satisfaction(candidate_school,dist=self.Dj[school_index])
-                #print("U_cand,U",U_candidate,U)
-                pr_move = self.prob_move(U,U_candidate)
-
-                if pr_move >= random.random():
-                    self.model.total_moves +=1
-                    # remove the student from the school
-
-                    self.move_school(school_index,candidate_school)
-                    break
-
-
-
-    def evaluate_move(self,U, proportional = False):
         # choose proportional or deterministic
+        utilities = self.get_school_utilities()
 
-        utilities = []
-        for school_index, candidate_school in enumerate(self.model.schools):
+        proportional_probs = []
+        boltzmann_probs = []
 
-            # check whether school is eligible to move to
-             #if candidate_school.current_capacity <= (candidate_school.capacity + 10) and candidate_school!=self.school:
-             if candidate_school.current_capacity <= (candidate_school.capacity + 10):
-                 utilities.append(self.get_school_satisfaction(candidate_school,dist=self.Dj[school_index]))
-             else:
-                 utilities.append(0)
-             #print(self.pos, candidate_school.pos, candidate_school.unique_id,self.Dj[school_index] )
-
-        probabilities = utilities / np.sum(utilities)
-        #print("utilities",utilities)
-        #print(probabilities)
-        if proportional:
-            index_to_move = np.random.choice(len(probabilities), p=probabilities)
+        if self.model.deterministic and self.model.proportional:
+            proportional_probs = utilities / np.sum(utilities)
+            index_to_move = np.random.choice(len(proportional_probs), p=proportional_probs)
+        if self.model.deterministic and not self.model.proportional:
+            index_to_move = np.argmax(proportional_probs)
         else:
-            index_to_move = np.argmax(probabilities)
+            for U_candidate in utilities:
+                boltzmann_probs.append(self.get_boltzman_probability(U, U_candidate))
+            print(boltzmann_probs)
+            # normalize probailities to sum to 1
+            boltzmann_probs = boltzmann_probs / np.sum(boltzmann_probs)
+            index_to_move = np.random.choice(len(boltzmann_probs), p=boltzmann_probs)
 
         # only
         if self.model.schools[index_to_move] != self.school:
             self.move_school(index_to_move,self.model.schools[index_to_move])
             self.model.total_moves +=1
+
+
+
+
+    def get_school_utilities(self):
+
+        utilities = []
+        for school_index, candidate_school in enumerate(self.model.schools):
+
+            # check whether school is eligible to move to
+            # if candidate_school.current_capacity <= (candidate_school.capacity + 10) and candidate_school!=self.school:
+            if candidate_school.current_capacity <= (candidate_school.capacity + 10):
+                U_candidate = self.get_school_satisfaction(candidate_school, dist=self.Dj[school_index])
+                utilities.append(U_candidate)
+
+            else:
+                utilities.append(0)
+                # print(self.pos, candidate_school.pos, candidate_school.unique_id,self.Dj[school_index] )
+
+        if len(utilities) != len(self.model.schools):
+
+            print("Error: not all schools are being evaluated")
+
+        return utilities
+
+
+
+    def get_boltzman_probability(self,U, U_candidate):
+
+        deltaU = U_candidate-U
+
+        return(1/(1+np.exp(-deltaU/self.model.temp)))
+
+
+
+    def evaluate_residential_move(self):
+
+        p = 0
+        x = 0
+
+        neighbours =  self.model.grid.neighbor_iter(self.pos)
+        for neighbour in neighbours:
+            if isinstance(neighbour, HouseholdAgent):
+                p+=1
+                if neighbour.type == self.type:
+                    x += 1
+
+        P = self.ethnic_utility(x=x,p=p)
+
+
 
 
     def move_school(self, school_index, new_school):
@@ -227,11 +253,9 @@ class HouseholdAgent(Agent):
         self.school.get_local_composition()
 
 
-    def prob_move(self,U, U_candidate):
 
-        deltaU = U_candidate-U
 
-        return(1/(1+np.exp(-deltaU/self.model.temp)))
+
 
 
     #@property
@@ -240,8 +264,10 @@ class HouseholdAgent(Agent):
         # p: total number of agents in the school or neighbourhood
         # For the schools we add the distance satisfaction
 
+
         x = school.get_local_composition()[self.type]
         p = np.sum(school.get_local_composition())
+
         dist = float(dist)
 
         P = self.ethnic_utility(x,p)
@@ -287,19 +313,21 @@ class SchoolModel(Model):
     Model class for the Schelling segregation model.
     '''
 
-    def __init__(self, height=100, width=100, density=0.8, num_schools=4,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6, M0=0.8,M1=0.8,
-                 alpha=0.4, temp=0.3, cap_max=1.5, deterministic=True, symmetric_positions=True):
+    def __init__(self, height=100, width=100, density=0.8, num_schools=16,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6, M0=0.8,M1=0.8,
+                 alpha=0.4, temp=0.3, cap_max=1.5, deterministic=True, symmetric_positions=True, proportional = False):
         '''
         '''
         # Options  for the model
         self.height = height
         self.width = width
+        print("h x w",height, width)
         self.density = density
         self.num_schools= num_schools
         self.homophily = homophily
         self.f = [f0,f1]
         self.M = [M0,M1]
-        self.residential_steps =0
+        self.residential_steps = 5
+
 
 
         self.household_types = [0, 1]
@@ -322,6 +350,7 @@ class SchoolModel(Model):
         self.total_moves = 0
 
         self.deterministic = deterministic
+        self.proportional=proportional
 
         self.school_locations = []
         self.household_locations = []
@@ -351,8 +380,26 @@ class SchoolModel(Model):
         # its contents. (coord_iter)
         # Set up schools
 
+        if num_schools == 4:
+            school_positions = [(width/4,height/4),(width*3/4,height/4),(width/4,height*3/4),(width*3/4,height*3/4)]
+        elif num_schools == 9:
+            n=6
+            school_positions = [(width/n,height/n),(width*3/n,height*1/n),(width*5/n,height*1/n),(width/n,height*3/n),\
+                                (width*3/n,height*3/n),(width*5/n,height*3/n),(width*1/n,height*5/n),(width*3/n,height*5/n),\
+                                (width*5/n,height*5/n)]
+        elif num_schools == 16:
+            school_positions = []
+            n=8
+            x1 = [1, 3, 5, 7]
 
-        school_positions = [(width/4,height/4),(width*3/4,height/4),(width/4,height*3/4),(width*3/4,height*3/4)]
+            xloc = np.repeat(x1, 4)
+            yloc = np.tile(x1, 4)
+
+            for i in range(len(x1 * 4)):
+                school_positions.append((xloc[i] * height / n, yloc[i] * width / n))
+
+
+
         print("locations",school_positions)
         for i in range(self.num_schools):
             #Add the agent to a random grid cell

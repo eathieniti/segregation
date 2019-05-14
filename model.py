@@ -8,6 +8,7 @@ import pandas as pd
 import numpy as np
 import random
 from collections import Counter
+from util import segregation_index, calculate_segregation_index, dissimilarity_index
 
 print("mesa",mesa.__file__)
 
@@ -22,7 +23,7 @@ class SchoolAgent(Agent):
 
         self.students = []
         self.type = 2
-        self.position = pos
+        self.pos = pos
 
 
 
@@ -30,6 +31,7 @@ class SchoolAgent(Agent):
         self.local_composition = [0,0]
         # TODO: households for now: change to students
         self.capacity = 0
+        self.neighbourhood_students = []
 
     def step(self):
         pass
@@ -43,6 +45,15 @@ class SchoolAgent(Agent):
         self.current_capacity = np.sum(self.local_composition)
 
         return(local_composition)
+
+
+    def get_local_neighbourhood_composition(self):
+
+        local_neighbourhood_composition = []
+
+        local_neighbourhood_composition = self.get_counts(self.neighbourhood_students)
+
+        return (local_neighbourhood_composition)
 
 
     def get_counts(self, students):
@@ -81,7 +92,10 @@ class HouseholdAgent(Agent):
         self.school = None
         self.dist_to_school = None
         self.local_composition = None
-        self.position = pos
+        self.pos = pos
+
+        self.closer_school = 0
+        self.Dj = []
 
 
 
@@ -94,8 +108,10 @@ class HouseholdAgent(Agent):
         :return: dist
         '''
         Dj = np.zeros((len(self.model.school_locations),1))
+
         for i, loc in enumerate(self.model.school_locations):
-            Dj[i] = np.linalg.norm(np.array(self.position)- np.array(loc))
+
+            Dj[i] = np.linalg.norm(np.array(self.pos)- np.array(loc))
         self.Dj = Dj
         #print("calculating distances", Dj)
 
@@ -116,6 +132,7 @@ class HouseholdAgent(Agent):
                # print("U_res",U_res)
                 if U_res < self.T:
                     self.model.grid.move_to_empty(self)
+
                 else:
                     self.model.res_happy += 1
 
@@ -138,22 +155,33 @@ class HouseholdAgent(Agent):
 
 
     def get_res_satisfaction(self):
-        x=0
-        p=0
 
-        neighbours = self.model.grid.get_neighbors(self.pos, moore=True, radius=1)
-        for neighbour in neighbours:
-            if isinstance(neighbour, HouseholdAgent):
-                p += 1
-                if neighbour.type == self.type:
-                    x += 1
+        x, y = self.get_local_neighbourhood_composition()
 
-
+        p = x + y
         P = self.ethnic_utility(x=x, p=p)
+
         self.res_satisfaction = P
 
         return(P)
 
+
+    def get_local_neighbourhood_composition(self):
+
+        # warning: for now only suitable for 2 gropups
+
+        x = 0
+        y = 0
+
+        neighbours = self.model.grid.get_neighbors(self.pos, moore=True, radius=1)
+        for neighbour in neighbours:
+            if isinstance(neighbour, HouseholdAgent):
+                if neighbour.type == self.type:
+                    x += 1
+                else:
+                    y += 1
+
+        return(x, y)
 
 
     def allocate(self, school, dist):
@@ -169,21 +197,32 @@ class HouseholdAgent(Agent):
         # choose proportional or deterministic
         utilities = self.get_school_utilities()
 
-        proportional_probs = []
         boltzmann_probs = []
+        proportional_probs = []
 
-        if self.model.deterministic and self.model.proportional:
+        if self.model.move == "deterministic":
             proportional_probs = utilities / np.sum(utilities)
-            index_to_move = np.random.choice(len(proportional_probs), p=proportional_probs)
-        if self.model.deterministic and not self.model.proportional:
-            index_to_move = np.argmax(proportional_probs)
-        else:
+
+            # if self.model.proportional:
+            #     index_to_move = np.random.choice(len(proportional_probs), p=proportional_probs)
+            # else:
+            index_to_move = np.argmax(np.array(proportional_probs))
+
+        elif self.model.move == "random":
+
+            index_to_move = random.randint(0, len(self.model.schools)-1)
+
+
+        elif self.model.move == "boltzmann":
+
             for U_candidate in utilities:
                 boltzmann_probs.append(self.get_boltzman_probability(U, U_candidate))
-            print(boltzmann_probs)
             # normalize probailities to sum to 1
-            boltzmann_probs = boltzmann_probs / np.sum(boltzmann_probs)
-            index_to_move = np.random.choice(len(boltzmann_probs), p=boltzmann_probs)
+            boltzmann_probs_normalized = boltzmann_probs / np.sum(boltzmann_probs)
+            index_to_move = np.random.choice(len(boltzmann_probs_normalized), p=boltzmann_probs_normalized)
+        else:
+            print("No valid move recipe selected")
+
 
         # only
         if self.model.schools[index_to_move] != self.school:
@@ -200,12 +239,12 @@ class HouseholdAgent(Agent):
 
             # check whether school is eligible to move to
             # if candidate_school.current_capacity <= (candidate_school.capacity + 10) and candidate_school!=self.school:
-            if candidate_school.current_capacity <= (candidate_school.capacity + 10):
-                U_candidate = self.get_school_satisfaction(candidate_school, dist=self.Dj[school_index])
-                utilities.append(U_candidate)
+            #if candidate_school.current_capacity <= (candidate_school.capacity + 10):
+            U_candidate = self.get_school_satisfaction(candidate_school, dist=self.Dj[school_index])
+            utilities.append(U_candidate)
 
-            else:
-                utilities.append(0)
+            #else:
+            #    utilities.append(0)
                 # print(self.pos, candidate_school.pos, candidate_school.unique_id,self.Dj[school_index] )
 
         if len(utilities) != len(self.model.schools):
@@ -221,22 +260,6 @@ class HouseholdAgent(Agent):
         deltaU = U_candidate-U
 
         return(1/(1+np.exp(-deltaU/self.model.temp)))
-
-
-
-    def evaluate_residential_move(self):
-
-        p = 0
-        x = 0
-
-        neighbours =  self.model.grid.neighbor_iter(self.pos)
-        for neighbour in neighbours:
-            if isinstance(neighbour, HouseholdAgent):
-                p+=1
-                if neighbour.type == self.type:
-                    x += 1
-
-        P = self.ethnic_utility(x=x,p=p)
 
 
 
@@ -313,8 +336,11 @@ class SchoolModel(Model):
     Model class for the Schelling segregation model.
     '''
 
-    def __init__(self, height=100, width=100, density=0.8, num_schools=16,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6, M0=0.8,M1=0.8,
-                 alpha=0.4, temp=0.3, cap_max=1.5, deterministic=True, symmetric_positions=True, proportional = False):
+    def __init__(self, height=100, width=100, density=0.8, num_schools=16,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6,\
+                 M0=0.8,M1=0.8,
+                 alpha=0.4, temp=0.3, cap_max=1.5, move="random", symmetric_positions=True,
+                 residential_steps=0,proportional = False,
+                 ):
         '''
         '''
         # Options  for the model
@@ -326,8 +352,7 @@ class SchoolModel(Model):
         self.homophily = homophily
         self.f = [f0,f1]
         self.M = [M0,M1]
-        self.residential_steps = 5
-
+        self.residential_steps = residential_steps
 
 
         self.household_types = [0, 1]
@@ -349,8 +374,7 @@ class SchoolModel(Model):
         self.grid = SingleGrid(height, width, torus=False)
         self.total_moves = 0
 
-        self.deterministic = deterministic
-        self.proportional=proportional
+        self.move = move
 
         self.school_locations = []
         self.household_locations = []
@@ -400,7 +424,6 @@ class SchoolModel(Model):
 
 
 
-        print("locations",school_positions)
         for i in range(self.num_schools):
             #Add the agent to a random grid cell
             x = random.randrange(self.grid.width)
@@ -413,10 +436,8 @@ class SchoolModel(Model):
             self.school_locations.append(pos)
             school = SchoolAgent(pos, self)
             self.grid.place_agent(school, school.unique_id)
-            print("position",pos,school.pos)
             self.schools.append(school)
             self.schedule.add(school)
-            print("school_pos",school.unique_id)
 
         # Set up households
 
@@ -438,7 +459,6 @@ class SchoolModel(Model):
 
 
 
-        Dij = self.calculate_distances()
 
         #print(Dij)
 
@@ -504,9 +524,9 @@ class SchoolModel(Model):
 
         print("height = %d; width = %d; density = %.2f; num_schools = %d; minority_pc =  %.2f; homophily = %d; "
               "f0 =  %.2f; f1 =  %.2f; M0 =  %.2f; M1 =  %.2f;\
-        alpha =  %.2f; temp =  %.2f; cap_max =  %.2f; deterministic = %s; symmetric_positions = %s"%(height,
+        alpha =  %.2f; temp =  %.2f; cap_max =  %.2f; move = %s; symmetric_positions = %s"%(height,
          width, density, num_schools,minority_pc,homophily,f0,f1, M0,M1,alpha,
-                                       temp, cap_max, deterministic, symmetric_positions ))
+                                       temp, cap_max, move, symmetric_positions ))
 
         self.total_considered = 0
         self.running = True
@@ -515,15 +535,15 @@ class SchoolModel(Model):
 
 
 
-    def calculate_distances(self):
-        '''
-        calculate distance between school and household
-        Euclidean or gis shortest road route
-        :return: dist
-        '''
-
-        Dij = distance.cdist(np.array(self.household_locations), np.array(self.school_locations), 'euclidean')
-        return(Dij)
+    # def calculate_distances(self):
+    #     '''
+    #     calculate distance between school and household
+    #     Euclidean or gis shortest road route
+    #     :return: dist
+    #     '''
+    #
+    #     Dij = distance.cdist(np.array(self.household_locations), np.array(self.school_locations), 'euclidean')
+    #     return(Dij)
 
 
 
@@ -543,21 +563,43 @@ class SchoolModel(Model):
         print("happy", self.happy)
         print("total_considered", self.total_considered)
 
-        self.seg_index = segregation_index(self)
-        print("seg_index", self.seg_index, "res_seg_index", self.res_seg_index)
+
+
 
         # Once residential steps are done calculate school distances
 
 
 
         if self.schedule.steps < self.residential_steps - 1 or self.schedule.steps ==1 :
+            # during the residential steps keep recalculating the school neighbourhood compositions
 
+            print("recalculating neighbourhoods")
             for school in self.schools:
                 school.neighbourhood_students = []
+
+
 
             household_locations = []
             for household in self.households:
                 household.calculate_distances()
+                # Calculate distances of the closest schools - define the school-neighbourhood and compare
+                # closer_school = household.schools[np.argmin(household.)]
+                household.closer_school = self.schools[np.argmin(household.Dj)]
+                household.closer_school.neighbourhood_students.append(household)
+
+
+
+
+
+
+
+        self.seg_index = segregation_index(self)
+        self.res_seg_index = segregation_index(self, unit="agents_neighbourhood")
+        residential_segregation = segregation_index(self, unit="neighbourhood")
+
+        print("seg_index", self.seg_index, "local_res_seg_index", self.res_seg_index, "res_seg_index",
+              residential_segregation)
+
 
 
 
@@ -566,17 +608,15 @@ class SchoolModel(Model):
             self.running = False
         compositions = []
         for school in self.schools:
-            print(self.schedule.steps, school.unique_id,"final_composition",school.get_local_composition())
             self.my_collector.append([self.schedule.steps, school.unique_id, school.get_local_composition()])
             self.compositions = school.get_local_composition()
-            print(self.local_compositions)
             compositions.append(school.get_local_composition()[0])
             compositions.append(school.get_local_composition()[1])
 
             self.compositions1 = int(school.get_local_composition()[1])
             self.compositions0 = int(school.get_local_composition()[0])
 
-        print("comps",compositions,np.sum(compositions) )
+        #print("comps",compositions,np.sum(compositions) )
         [self.comp0,self.comp1,self.comp2,self.comp3,self.comp4,self.comp5,self.comp6,self.comp7] = compositions[0:8]
         # collect data
         self.datacollector.collect(self)
@@ -585,63 +625,4 @@ class SchoolModel(Model):
 
 
 
-
-
-
-def segregation_index(model):
-    # pi_jm: proportions in unit j that belongs to group m, shape: (j,m) (schools,groups)
-    # pm: proportion in group m (m,1)
-
-
-
-    # tj: total number in group j - dim: (1,j)
-
-
-    pi_jm = np.zeros(shape=(len(model.school_locations), len(model.household_types)))
-    local_compositions = np.zeros(shape=(len(model.school_locations), len(model.household_types)))
-
-
-    for s_ind, school in enumerate(model.schools):
-        local_composition = school.get_local_composition()
-
-        local_compositions[s_ind][:] = local_composition
-        pi_jm[s_ind][:] = local_composition / np.sum(local_composition)
-
-        model.local_compositions = local_compositions
-        model.pi_jm = pi_jm
-    print(local_compositions, pi_jm)
-
-
-    T=np.sum(local_compositions)
-
-    tj = np.sum(local_compositions,axis=1, keepdims=True)
-    #print("tj,",tj)
-
-    pm = np.sum(pi_jm,axis=0)/np.sum(pi_jm, keepdims=True)
-    #print("pm",pm)
-
-    E = np.sum(pm*np.log(1/pm))
-
-    #print("tj/TE",tj / (T * E))
-    #print("pi_jm",pi_jm)
-    #print("pm",pm)
-    #print("pi_jm/pm",pi_jm/pm)
-
-    seg_index = np.sum(tj / (T*E) * pi_jm * np.ma.log(pi_jm/pm), axis=None)
-
-    print("seg_index",seg_index)
-
-    return(seg_index)
-
-
-def dissimilarity_index(model):
-
-    for s_ind, school in enumerate(model.schools):
-        local_composition = school.get_local_composition()
-        model.pi_jm[s_ind][:] = local_composition
-
-    pi_jm = model.pi_jm
-    T=np.sum(pi_jm)
-    tj = np.sum(pi_jm,axis=0, keepdims=True)
-    pm = np.sum(pi_jm, axis=1, keepdims=True)
 

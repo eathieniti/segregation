@@ -11,8 +11,9 @@ from mesa.visualization.TextVisualization import (
 )
 
 from model import SchoolModel
-
-
+height = 54
+width = 54
+color_by_school  = False
 class SchellingTextVisualization(TextVisualization):
     '''
     ASCII visualization for schelling model
@@ -83,8 +84,9 @@ class HappyElement(TextElement):
 def get_school_colors(model):
 
     schools_ids = [school.unique_id for school in model.schools]
-    colors_list = ["#9b59b6", "#3498db", "#95a5a6", "#e74c3c", "#34495e", "#2ecc71"][0:len(schools_ids)]
-    colors_list = ["LightGreen", "Yellow", "MediumOrchid", "LightBlue"]
+    colors_list = ["#9b59b6", "#3498db", "#95a5a6", "#e74c3c", "#34495e", "#2ecc51","#2ecc41","#2ecc21","#2ecc81"][0:len(schools_ids)]
+    colors_list = ["LightGreen", "Yellow", "MediumOrchid", "LightBlue", "Green", "Blue", "Orchid", "LightYellow",
+                   "DarkOrchid","LightGreen", "Yellow", "MediumOrchid", "LightBlue","LightGreen", "Yellow", "MediumOrchid", "LightBlue"]
     school_colors = dict(zip(schools_ids, colors_list))
 
     return(school_colors)
@@ -99,11 +101,22 @@ def schelling_draw(agent):
         return
     portrayal = {"Shape": "rect", "w": 1.0,"h":1.0, "Filled": True, "Layer": 0}
 
+
     school_colors = get_school_colors(agent.model)
+
+
     if agent.type == 0:
-        if agent.school: #
-            portrayal["Color"] = school_colors[agent.school.unique_id]
-            portrayal["stroke_color"] = school_colors[agent.school.unique_id]
+
+        if agent.school:
+
+            if color_by_school:
+                portrayal["Color"] = school_colors[agent.school.unique_id]
+                portrayal["stroke_color"] = school_colors[agent.school.unique_id]
+
+            else:
+                portrayal["Color"] = ["#000000", "#000000"]
+                portrayal["stroke_color"] = ["#000000", "#000000"]
+
             portrayal["Shape"] = "rect"
         else: # decorator agents that are not assigned to school this only shows their type
             portrayal["Layer"] = 1
@@ -118,8 +131,13 @@ def schelling_draw(agent):
     elif agent.type == 1:
 
         if agent.school:  #
-            portrayal["Color"] = school_colors[agent.school.unique_id]
-            portrayal["stroke_color"] = school_colors[agent.school.unique_id]
+            if color_by_school:
+                portrayal["Color"] = school_colors[agent.school.unique_id]
+                portrayal["stroke_color"] = school_colors[agent.school.unique_id]
+            else:
+                portrayal["Color"] = ["#FF0000", "#FF0000"]
+                portrayal["stroke_color"] = ["#FF0000", "#FF0000"]
+
             portrayal["Shape"] = "rect"
         else:  # decorator agents that are not assigned to school this only shows their type
             portrayal["Layer"] = 1
@@ -142,7 +160,7 @@ def schelling_draw(agent):
 
 
 happy_element = HappyElement()
-canvas_element = CanvasGrid(schelling_draw, 120,120, 500, 500)
+canvas_element = CanvasGrid(schelling_draw, height,width, 500, 500)
 
 compositions_chart = BarChartModule([{"Label": "comp0", "Color": "Black"}, {"Label": "comp1", "Color": "Blue"},
                               {"Label": "comp2", "Color": "Black"}, {"Label": "comp3", "Color": "Blue"},
@@ -155,16 +173,16 @@ histogram = HistogramModule(list(range(10)), 200, 500)
 
 
 model_params = {
-    "height": 120,
-    "width": 120,
+    "height": height,
+    "width": width,
     "density": UserSettableParameter("slider", "Agent density", 0.8, 0.1, 1.0, 0.1),
     "minority_pc": UserSettableParameter("slider", "Fraction minority", 0.5, 0.00, 1.0, 0.05),
     "f0": UserSettableParameter("slider", "f0", 0.6, 0.1,0.9,0.1),
-    "f1": UserSettableParameter("slider", "f1", 0.6, 0.1, 0.9, 0.1),
+    "f1": UserSettableParameter("slider", "f1",0.6, 0.1, 0.9, 0.1),
     "M0": UserSettableParameter("slider", "M0", 0.8, 0.1, 0.9, 0.1),
     "M1": UserSettableParameter("slider", "M1", 0.8, 0.1, 0.9, 0.1),
     "cap_max": UserSettableParameter("slider", "max capacity", 2, 1.0, 5, 0.1),
-    "alpha": UserSettableParameter("slider", "alpha", 0.3, 0.0, 0.9, 0.1),
+    "alpha": UserSettableParameter("slider", "alpha", 0.4, 0.0, 1.0, 0.1),
     "temp": UserSettableParameter("slider", "temp", 0.1, 0.0, 0.9, 0.1)
 }
 

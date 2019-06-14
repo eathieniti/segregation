@@ -14,6 +14,7 @@ from model import SchoolModel
 height = 54
 width = 54
 color_by_school  = False
+add_schools = False
 class SchellingTextVisualization(TextVisualization):
     '''
     ASCII visualization for schelling model
@@ -114,16 +115,16 @@ def schelling_draw(agent):
                 portrayal["stroke_color"] = school_colors[agent.school.unique_id]
 
             else:
-                portrayal["Color"] = ["#000000", "#000000"]
-                portrayal["stroke_color"] = ["#000000", "#000000"]
+                portrayal["Color"] = ["#000080", "#000080"]
+                portrayal["stroke_color"] = ["#000080", "#000080"]
 
             portrayal["Shape"] = "rect"
         else: # decorator agents that are not assigned to school this only shows their type
             portrayal["Layer"] = 1
             portrayal["Shape"] = "circle"
             portrayal["Filled"] = True
-            portrayal["Color"] = ["#000000", "#000000"]
-            portrayal["stroke_color"] = ["#000000", "#000000"]
+            portrayal["Color"] = ["#000080", "#000080"]
+            portrayal["stroke_color"] = ["#000080", "#000080"]
             portrayal["r"]=0.7
 
 
@@ -147,14 +148,19 @@ def schelling_draw(agent):
             portrayal["stroke_color"] =  ["#FF0000", "#FF0000"]
             portrayal["r"] = 0.7
 
-
     elif agent.type == 2:
         portrayal["Layer"] = 2
-        portrayal["Color"] = school_colors[agent.unique_id]
         print(agent.unique_id)
-        portrayal["stroke_color"] = ["#000000", "#000000"]
         portrayal["Shape"]= "circle"
-        portrayal["r"] = 4
+        portrayal["r"] = 1
+        if add_schools:
+            portrayal["Color"] = school_colors[agent.unique_id]
+            portrayal["stroke_color"] = ["#000000", "#000000"]
+        else:
+            portrayal["stroke_color"] = ["white", "white"]
+            portrayal["Color"] = ["white", "white"]
+
+
     #print(agent.type,portrayal)
     return portrayal
 
@@ -168,6 +174,8 @@ compositions_chart = BarChartModule([{"Label": "comp0", "Color": "Black"}, {"Lab
                               {"Label": "comp6", "Color": "Black"}, {"Label": "comp7", "Color": "Blue"}])
 happy_chart = ChartModule([{"Label": "percent_happy", "Color": "Black"}])
 seg_chart = ChartModule([{"Label": "seg_index", "Color": "Black"}],canvas_height=200, canvas_width=600, )
+res_seg_chart = ChartModule([{"Label": "res_seg_index", "Color": "Black"}],canvas_height=200, canvas_width=600, )
+neighbourhood_seg_chart = ChartModule([{"Label": "residential_segregation", "Color": "Black"}],canvas_height=200, canvas_width=600, )
 
 histogram = HistogramModule(list(range(10)), 200, 500)
 
@@ -175,18 +183,19 @@ histogram = HistogramModule(list(range(10)), 200, 500)
 model_params = {
     "height": height,
     "width": width,
-    "density": UserSettableParameter("slider", "Agent density", 0.8, 0.1, 1.0, 0.1),
+    "density": UserSettableParameter("slider", "Agent density", 0.99, 0.1, 1.0, 0.01),
     "minority_pc": UserSettableParameter("slider", "Fraction minority", 0.5, 0.00, 1.0, 0.05),
-    "f0": UserSettableParameter("slider", "f0", 0.6, 0.1,0.9,0.1),
-    "f1": UserSettableParameter("slider", "f1",0.6, 0.1, 0.9, 0.1),
-    "M0": UserSettableParameter("slider", "M0", 0.8, 0.1, 0.9, 0.1),
-    "M1": UserSettableParameter("slider", "M1", 0.8, 0.1, 0.9, 0.1),
+    "f0": UserSettableParameter("slider", "f0", 0.7, 0.1,0.9,0.1),
+    "f1": UserSettableParameter("slider", "f1",0.7, 0.1, 0.9, 0.1),
+    "M0": UserSettableParameter("slider", "M0", 1, 0.1, 1, 0.1),
+    "M1": UserSettableParameter("slider", "M1", 1, 0.1, 1, 0.1),
     "cap_max": UserSettableParameter("slider", "max capacity", 2, 1.0, 5, 0.1),
-    "alpha": UserSettableParameter("slider", "alpha", 0.4, 0.0, 1.0, 0.1),
+    "alpha": UserSettableParameter("slider", "alpha", 0.2, 0.0, 1.0, 0.1),
     "temp": UserSettableParameter("slider", "temp", 0.1, 0.0, 0.9, 0.1)
 }
 
 server = ModularServer(SchoolModel,
-                       [canvas_element, compositions_chart, seg_chart, happy_chart],
+                       [canvas_element, compositions_chart, seg_chart, happy_chart,
+                        res_seg_chart,neighbourhood_seg_chart],
                        "SchoolModel", model_params)
 server.launch()

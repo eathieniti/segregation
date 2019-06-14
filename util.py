@@ -88,20 +88,19 @@ def calculate_segregation_index(local_compositions, pi_jm):
     #print("pm",pm)
 
     log_matrix= np.nan_to_num(np.log(pi_jm/pm))
-    print('log',log_matrix)
 
     seg_index = np.sum(tj / (T*E) * pi_jm * log_matrix, axis=None)
 
-    print("pm", pm)
+    # print("pm", pm)
 
-    if seg_index>1:
-        print("tj",tj )
-
-        print("tj/TE",tj / (T * E))
-        print("pi_jm",pi_jm)
-        print("pi_jm/pm",pi_jm/pm)
-
-        print("pm",pm)
+    # if seg_index>1:
+    #     print("tj",tj )
+    #
+    #     print("tj/TE",tj / (T * E))
+    #     print("pi_jm",pi_jm)
+    #     print("pi_jm/pm",pi_jm/pm)
+    #
+    #     print("pm",pm)
 
     return(seg_index)
 

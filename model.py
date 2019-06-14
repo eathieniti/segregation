@@ -96,6 +96,7 @@ class HouseholdAgent(Agent):
 
         self.closer_school = 0
         self.Dj = []
+        self.schelling = self.model.schelling
 
 
 
@@ -156,10 +157,11 @@ class HouseholdAgent(Agent):
 
     def get_res_satisfaction(self):
 
+
         x, y = self.get_local_neighbourhood_composition()
 
         p = x + y
-        P = self.ethnic_utility(x=x, p=p)
+        P = self.ethnic_utility(x=x, p=p, schelling=self.schelling)
 
         self.res_satisfaction = P
 
@@ -169,9 +171,10 @@ class HouseholdAgent(Agent):
     def get_local_neighbourhood_composition(self):
 
         # warning: for now only suitable for 2 gropups
-
         x = 0
         y = 0
+
+
 
         neighbours = self.model.grid.get_neighbors(self.pos, moore=True, radius=1)
         for neighbour in neighbours:
@@ -224,7 +227,7 @@ class HouseholdAgent(Agent):
             print("No valid move recipe selected")
 
 
-        # only
+        # only do the actually move if it is really a different school otherwise stay
         if self.model.schools[index_to_move] != self.school:
             self.move_school(index_to_move,self.model.schools[index_to_move])
             self.model.total_moves +=1
@@ -265,6 +268,9 @@ class HouseholdAgent(Agent):
 
 
     def move_school(self, school_index, new_school):
+
+        # Removes student from current school and allocates to new
+
         self.school.students.remove(self)
 
         # update metrics for school - could be replaced by +-1
@@ -272,6 +278,7 @@ class HouseholdAgent(Agent):
 
         # allocate elsewhere
         self.allocate(new_school, self.Dj[school_index])
+
         # now update the new school
         self.school.get_local_composition()
 
@@ -293,7 +300,7 @@ class HouseholdAgent(Agent):
 
         dist = float(dist)
 
-        P = self.ethnic_utility(x,p)
+        P = self.ethnic_utility(x,p, schelling =self.schelling)
 
 
         D = (self.model.max_dist - dist) / self.model.max_dist
@@ -304,7 +311,7 @@ class HouseholdAgent(Agent):
         return(U)
 
 
-    def ethnic_utility(self, x, p):
+    def ethnic_utility(self, x, p, schelling=False):
 
         # x: local number of agents of own group in the school or neighbourhood
         # p: total number of agents in the school or neighbourhood
@@ -318,17 +325,29 @@ class HouseholdAgent(Agent):
 
         if self.type in [0, 1]:
 
-            # assymetric satisfaction for minority
-            if fp == 0:
-                P = 0
-            elif x <= fp:
-                P = float(x) / fp
+            if schelling:
+                if x <= fp:
+                    P=0
+                else:
+                    P=1
 
             else:
-                P = self.M + (p - x) * (1 - self.M) / (p * (1 - self.f))
+                if fp == 0:
+                    P = 0
+                elif x <= fp:
+                    P = float(x) / fp
+
+                else:
+                    P = self.M + (p - x) * (1 - self.M) / (p * (1 - self.f))
+
+
 
 
         return(P)
+
+
+
+
 
 
 class SchoolModel(Model):
@@ -336,10 +355,10 @@ class SchoolModel(Model):
     Model class for the Schelling segregation model.
     '''
 
-    def __init__(self, height=100, width=100, density=0.8, num_schools=16,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6,\
+    def __init__(self, height=54, width=54, density=0.99, num_schools=16,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6,\
                  M0=0.8,M1=0.8,
-                 alpha=0.4, temp=0.3, cap_max=1.5, move="random", symmetric_positions=True,
-                 residential_steps=0,proportional = False,
+                 alpha=0.4, temp=0.1, cap_max=1.5, move="boltzmann", symmetric_positions=True,
+                 residential_steps=0,schelling=False,proportional = False,
                  ):
         '''
         '''
@@ -353,10 +372,11 @@ class SchoolModel(Model):
         self.f = [f0,f1]
         self.M = [M0,M1]
         self.residential_steps = residential_steps
-
+        self.minority_pc = minority_pc
 
         self.household_types = [0, 1]
         self.symmetric_positions = symmetric_positions
+        self.schelling=schelling
 
 
         # choice parameters
@@ -366,7 +386,6 @@ class SchoolModel(Model):
         self.households = []
         self.schools = []
 
-        self.minority_pc = minority_pc
 
 
         self.num_households = int(width*height*density)
@@ -386,7 +405,9 @@ class SchoolModel(Model):
         self.percent_happy = 0
         self.seg_index = 0
         self.res_seg_index = 0
-        self.comp0,self.comp1,self.comp2,self.comp3,self.comp4,self.comp5,self.comp6,self.comp7 = 0,0,0,0,0,0,0,0
+        self.residential_segregation = 0
+        self.comp0,self.comp1,self.comp2,self.comp3,self.comp4,self.comp5,self.comp6,self.comp7, \
+        self.comp8, self.comp9, self.comp10, self.comp11, self.comp12, self.comp13, self.comp14, self.comp15 = 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
         self.satisfaction = []
 
         self.compositions = []
@@ -503,6 +524,7 @@ class SchoolModel(Model):
         self.datacollector = DataCollector(
             model_reporters={"agent_count":
                                  lambda m: m.schedule.get_agent_count(), "seg_index": "seg_index",
+                             "residential_segregation": "residential_segregation", "res_seg_index":  "res_seg_index",
                              "happy": "happy", "percent_happy": "percent_happy",
                              "total_moves": "total_moves", "compositions0": "compositions0",
                              "compositions1": "compositions1",
@@ -580,12 +602,18 @@ class SchoolModel(Model):
 
 
             household_locations = []
+
+
             for household in self.households:
                 household.calculate_distances()
-                # Calculate distances of the closest schools - define the school-neighbourhood and compare
+                # Calculate distances of the schools - define the school-neighbourhood and compare
                 # closer_school = household.schools[np.argmin(household.)]
-                household.closer_school = self.schools[np.argmin(household.Dj)]
+                closer_school_index = np.argmin(household.Dj)
+                household.closer_school = self.schools[closer_school_index]
                 household.closer_school.neighbourhood_students.append(household)
+
+                # Initialize house allocation to school
+                #household.move_school(closer_school_index, self.schools[closer_school_index])
 
 
 
@@ -595,10 +623,12 @@ class SchoolModel(Model):
 
         self.seg_index = segregation_index(self)
         self.res_seg_index = segregation_index(self, unit="agents_neighbourhood")
-        residential_segregation = segregation_index(self, unit="neighbourhood")
+        self.residential_segregation = segregation_index(self, unit="neighbourhood")
 
-        print("seg_index", self.seg_index, "local_res_seg_index", self.res_seg_index, "res_seg_index",
-              residential_segregation)
+
+
+        print("seg_index", self.seg_index, "res_seg_index", self.res_seg_index, "residential_segregation",
+              self.residential_segregation)
 
 
 

@@ -38,7 +38,7 @@ def segregation_index(model, unit = "school" ):
         local_compositions = np.zeros(shape=(len(model.households), len(model.household_types)))
 
         for a_ind, household_agent in enumerate(model.households):
-            local_composition = household_agent.get_local_neighbourhood_composition(radius=model.radius)
+            local_composition = household_agent.get_local_neighbourhood_composition(position=household_agent.pos,radius=model.radius)
             local_compositions[a_ind][:] = local_composition
             pi_jm[a_ind][:] = local_composition / np.sum(local_composition)
 

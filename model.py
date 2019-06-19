@@ -141,7 +141,7 @@ class HouseholdAgent(Agent):
             # only step the agents if the number considered is not exhausted
             if self.model.total_considered < self.model.residential_moves_per_step:
                 # move residential
-                U_res = self.get_res_satisfaction()
+                U_res = self.get_res_satisfaction(self.pos)
                # print("U_res",U_res)
                 if U_res < self.T:
 
@@ -149,8 +149,8 @@ class HouseholdAgent(Agent):
                     # find all empty places
                     # rank them
                     # take one with boltzmann probability.
-                    self.model.grid.move_to_empty(self)
-                    #self.evaluate_move(U_res, school=False)
+                    #self.model.grid.move_to_empty(self)
+                    self.evaluate_move(U_res, school=False)
 
                 else:
                     self.model.res_happy += 1
@@ -167,7 +167,7 @@ class HouseholdAgent(Agent):
                 # If unhappy, compared to threshold move:
                 if U < self.T:
                     #print('unhappy')
-                    self.evaluate_move(U)
+                    self.evaluate_move(U, school=True)
 
                 else:
                     self.model.happy += 1
@@ -177,10 +177,10 @@ class HouseholdAgent(Agent):
 
 
 
-    def get_res_satisfaction(self):
+    def get_res_satisfaction(self, position):
 
 
-        x, y = self.get_local_neighbourhood_composition(radius=self.model.radius ,bounded=self.model.bounded)
+        x, y = self.get_local_neighbourhood_composition(position, radius=self.model.radius ,bounded=self.model.bounded)
 
         p = x + y
         P = self.ethnic_utility(x=x, p=p, schelling=self.schelling)
@@ -190,12 +190,11 @@ class HouseholdAgent(Agent):
         return(P)
 
 
-    def get_local_neighbourhood_composition(self, radius, bounded=False):
+    def get_local_neighbourhood_composition(self, position, radius, bounded=False):
 
         # warning: for now only suitable for 2 gropups
         x = 0
         y = 0
-
 
         if bounded:
             x, y = self.get_closer_school().get_local_neighbourhood_composition()
@@ -203,9 +202,10 @@ class HouseholdAgent(Agent):
             print("x,y",x,y)
 
 
+
         else:
 
-            neighbours = self.model.grid.get_neighbors(self.pos, moore=True, radius=radius)
+            neighbours = self.model.grid.get_neighbors(position, moore=True, radius=radius)
             for neighbour in neighbours:
                 if isinstance(neighbour, HouseholdAgent):
                     if neighbour.type == self.type:
@@ -229,10 +229,16 @@ class HouseholdAgent(Agent):
         if school:
             # choose proportional or deterministic
             utilities = self.get_school_utilities()
+            index_to_move = self.choose_candidate(U,utilities)
+            self.move_school(index_to_move, self.model.schools[index_to_move])
+
         else:
-            utilities = self.get_residential_utilities()
+            residential_candidates, utilities = self.get_residential_utilities()
+            index_to_move = self.choose_candidate(U,utilities)
+            self.move_residence(residential_candidates[index_to_move])
 
 
+    def choose_candidate(self, U, utilities):
 
         boltzmann_probs = []
         proportional_probs = []
@@ -247,11 +253,10 @@ class HouseholdAgent(Agent):
 
         elif self.model.move == "random":
 
-            index_to_move = random.randint(0, len(self.model.schools)-1)
+            index_to_move = random.randint(0, len(utilities)-1)
 
 
         elif self.model.move == "boltzmann":
-
             for U_candidate in utilities:
                 boltzmann_probs.append(self.get_boltzman_probability(U, U_candidate))
             # normalize probailities to sum to 1
@@ -260,14 +265,7 @@ class HouseholdAgent(Agent):
         else:
             print("No valid move recipe selected")
 
-
-        # only do the actually move if it is really a different school otherwise stay
-        if self.model.schools[index_to_move] != self.school:
-            self.move_school(index_to_move,self.model.schools[index_to_move])
-            self.model.total_moves +=1
-
-
-
+        return(index_to_move)
 
     def get_school_utilities(self):
 
@@ -287,22 +285,20 @@ class HouseholdAgent(Agent):
         if len(utilities) != len(self.model.schools):
 
             print("Error: not all schools are being evaluated")
-
         return utilities
+
 
     def get_residential_utilities(self):
 
         utilities = []
-        # get school neighbourhood compositon
-        # empty_cells = self.model.grid.empties
-        # for e in empty_cells:
-        #     print("e", e)
-        #     # TODO: empty site find the closer school
-        #     x, y = e.get_closer_school().get_local_neighbourhood_composition()
-        #     U_res_candidate  = self.ethnic_utility(self,x,p,schelling=False)
-        #     utilities.append(U_res_candidate)
+        # Evaluate all residential sites
+        empty_cells = self.model.grid.empties
+        for e in empty_cells:
+            # TODO: empty site find the closer school
+            U_res_candidate = self.get_res_satisfaction(e)
+            utilities.append(U_res_candidate)
 
-        return utilities
+        return empty_cells, utilities
 
     def get_boltzman_probability(self,U, U_candidate):
 
@@ -316,17 +312,29 @@ class HouseholdAgent(Agent):
     def move_school(self, school_index, new_school):
 
         # Removes student from current school and allocates to new
+        # only do the actually move if it is really a different school otherwise stay
+        if self.model.schools[school_index] != self.school:
 
-        self.school.students.remove(self)
 
-        # update metrics for school - could be replaced by +-1
-        self.school.get_local_composition()
+            self.school.students.remove(self)
 
-        # allocate elsewhere
-        self.allocate(new_school, self.Dj[school_index])
+            # update metrics for school - could be replaced by +-1
+            self.school.get_local_composition()
 
-        # now update the new school
-        self.school.get_local_composition()
+            # allocate elsewhere
+            self.allocate(new_school, self.Dj[school_index])
+
+            # now update the new school
+            self.school.get_local_composition()
+
+            self.model.total_moves +=1
+
+
+
+    def move_residence(self, new_position):
+        self.model.grid.move_agent(self, new_position)
+
+
 
 
 
@@ -403,7 +411,7 @@ class SchoolModel(Model):
     def __init__(self, height=54, width=54, density=0.99, num_schools=16,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6,\
                  M0=0.8,M1=0.8,
                  alpha=0.4, temp=0.1, cap_max=1.5, move="boltzmann", symmetric_positions=True,
-                 residential_steps=0,schelling=False,bounded=False,
+                 residential_steps=50,schelling=False,bounded=False,
                  residential_moves_per_step=500, school_moves_per_step = 500,radius=5,proportional = False,
                  ):
         '''

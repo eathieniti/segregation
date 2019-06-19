@@ -187,8 +187,8 @@ model_params = {
     "minority_pc": UserSettableParameter("slider", "Fraction minority", 0.5, 0.00, 1.0, 0.05),
     "f0": UserSettableParameter("slider", "f0", 0.7, 0.1,0.9,0.1),
     "f1": UserSettableParameter("slider", "f1",0.7, 0.1, 0.9, 0.1),
-    "M0": UserSettableParameter("slider", "M0", 1, 0.1, 1, 0.1),
-    "M1": UserSettableParameter("slider", "M1", 1, 0.1, 1, 0.1),
+    "M0": UserSettableParameter("slider", "M0", 0.8, 0.1, 1, 0.1),
+    "M1": UserSettableParameter("slider", "M1", 0.8, 0.1, 1, 0.1),
     "cap_max": UserSettableParameter("slider", "max capacity", 2, 1.0, 5, 0.1),
     "alpha": UserSettableParameter("slider", "alpha", 0.2, 0.0, 1.0, 0.1),
     "temp": UserSettableParameter("slider", "temp", 0.1, 0.0, 0.9, 0.1)

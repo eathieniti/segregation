@@ -233,8 +233,10 @@ class HouseholdAgent(Agent):
             self.move_school(index_to_move, self.model.schools[index_to_move])
 
         else:
+            
             residential_candidates, utilities = self.get_residential_utilities()
             index_to_move = self.choose_candidate(U,utilities)
+
             self.move_residence(residential_candidates[index_to_move])
 
 
@@ -290,6 +292,7 @@ class HouseholdAgent(Agent):
 
     def get_residential_utilities(self):
 
+        candidates = []
         utilities = []
         # Evaluate all residential sites
         empty_cells = self.model.grid.empties
@@ -297,8 +300,8 @@ class HouseholdAgent(Agent):
             # TODO: empty site find the closer school
             U_res_candidate = self.get_res_satisfaction(e)
             utilities.append(U_res_candidate)
-
-        return empty_cells, utilities
+            candidates.append(e)
+        return candidates, utilities
 
     def get_boltzman_probability(self,U, U_candidate):
 

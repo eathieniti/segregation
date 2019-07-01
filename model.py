@@ -274,12 +274,12 @@ class HouseholdAgent(Agent):
 
             # check whether school is eligible to move to
             # if candidate_school.current_capacity <= (candidate_school.capacity + 10) and candidate_school!=self.school:
-            #if candidate_school.current_capacity <= (candidate_school.capacity + 10):
-            U_candidate = self.get_school_satisfaction(candidate_school, dist=self.Dj[school_index])
-            utilities.append(U_candidate)
+            if candidate_school.current_capacity <= (candidate_school.capacity):
+                U_candidate = self.get_school_satisfaction(candidate_school, dist=self.Dj[school_index])
+                utilities.append(U_candidate)
 
-            #else:
-            #    utilities.append(0)
+            else:
+                utilities.append(0)
                 # print(self.pos, candidate_school.pos, candidate_school.unique_id,self.Dj[school_index] )
 
         if len(utilities) != len(self.model.schools):
@@ -410,9 +410,9 @@ class SchoolModel(Model):
 
     def __init__(self, height=54, width=54, density=0.99, num_schools=16,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6,\
                  M0=0.8,M1=0.8,
-                 alpha=0.4, temp=0.1, cap_max=1.5, move="boltzmann", symmetric_positions=True,
-                 residential_steps=50,schelling=False,bounded=False,
-                 residential_moves_per_step=500, school_moves_per_step = 500,radius=5,proportional = False,
+                 alpha=0.4, temp=0.1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
+                 residential_steps=0,schelling=False,bounded=False,
+                 residential_moves_per_step=500, school_moves_per_step = 500,radius=6,proportional = False,
                  ):
         '''
         '''
@@ -428,6 +428,7 @@ class SchoolModel(Model):
         self.residential_steps = residential_steps
         self.minority_pc = minority_pc
         self.bounded = bounded
+        self.cap_max=cap_max
 
         self.radius = radius
         self.household_types = [0, 1]
@@ -601,10 +602,11 @@ class SchoolModel(Model):
         # set size
         for school in self.schools:
             school.get_local_composition()
-            cap = round(np.random.normal(loc=cap_max * self.avg_school_size, scale=self.avg_school_size * 0.05))
+            #cap = round(np.random.normal(loc=cap_max * self.avg_school_size, scale=self.avg_school_size * 0.05))
+            cap = np.round(self.avg_school_size * self.cap_max)
 
-            school.capacity = cap
-        segregation_index(self)
+            print("cap",self.avg_school_size, cap)
+            segregation_index(self)
         #
 
         print("height = %d; width = %d; density = %.2f; num_schools = %d; minority_pc =  %.2f; homophily = %d; "

@@ -5,7 +5,7 @@ import sys
 Utilities file, includes helper functions and measures
 """
 
-def segregation_index(model, unit = "school" ):
+def segregation_index(model, unit = "school" , radius=1):
 
     """
     Calculates the local compositions for schools/neighbourhoods and then the segregation
@@ -42,7 +42,16 @@ def segregation_index(model, unit = "school" ):
             local_compositions[a_ind][:] = local_composition
             pi_jm[a_ind][:] = local_composition / np.sum(local_composition)
 
+    elif unit == "fixed_agents_neighbourhood":
 
+        pi_jm = np.zeros(shape=(len(model.households), len(model.household_types)))
+        local_compositions = np.zeros(shape=(len(model.households), len(model.household_types)))
+
+        for a_ind, household_agent in enumerate(model.households):
+            local_composition = household_agent.get_local_neighbourhood_composition(position=household_agent.pos,
+                                                                                    radius=radius)
+            local_compositions[a_ind][:] = local_composition
+            pi_jm[a_ind][:] = local_composition / np.sum(local_composition)
 
     else:
         print("Not valid segregation measure")

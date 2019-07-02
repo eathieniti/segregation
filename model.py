@@ -88,7 +88,7 @@ class HouseholdAgent(Agent):
         self.type = agent_type
         self.f = model.f[agent_type]
         self.M = model.M[agent_type]
-        self.T = 0.75
+        self.T = model.T
         self.children = 1
         self.school = None
         self.dist_to_school = None
@@ -409,10 +409,10 @@ class SchoolModel(Model):
     '''
 
     def __init__(self, height=54, width=54, density=0.99, num_schools=16,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6,\
-                 M0=0.8,M1=0.8,
-                 alpha=0.4, temp=0.1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
-                 residential_steps=0,schelling=False,bounded=False,
-                 residential_moves_per_step=500, school_moves_per_step = 500,radius=6,proportional = False,
+                 M0=0.8,M1=0.8,T=0.72,
+                 alpha=0.2, temp=0.1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
+                 residential_steps=120,schelling=False,bounded=False,
+                 residential_moves_per_step=500, school_moves_per_step = 500,radius=7,proportional = False,
                  ):
         '''
         '''
@@ -429,7 +429,7 @@ class SchoolModel(Model):
         self.minority_pc = minority_pc
         self.bounded = bounded
         self.cap_max=cap_max
-
+        self.T = T
         self.radius = radius
         self.household_types = [0, 1]
         self.symmetric_positions = symmetric_positions
@@ -587,7 +587,7 @@ class SchoolModel(Model):
         self.datacollector = DataCollector(
             model_reporters={"agent_count":
                                  lambda m: m.schedule.get_agent_count(), "seg_index": "seg_index",
-                             "residential_segregation": "residential_segregation", "res_seg_index":  "res_seg_index",
+                             "residential_segregation": "residential_segregation", "res_seg_index":  "res_seg_index","fixed_res_seg_index":"fixed_res_seg_index",
                              "happy": "happy", "percent_happy": "percent_happy",
                              "total_moves": "total_moves", "compositions0": "compositions0",
                              "compositions1": "compositions1",
@@ -603,7 +603,7 @@ class SchoolModel(Model):
         for school in self.schools:
             school.get_local_composition()
             #cap = round(np.random.normal(loc=cap_max * self.avg_school_size, scale=self.avg_school_size * 0.05))
-            cap = np.round(self.avg_school_size * self.cap_max)
+            cap = self.avg_school_size * self.cap_max
 
             print("cap",self.avg_school_size, cap)
             segregation_index(self)
@@ -689,12 +689,13 @@ class SchoolModel(Model):
         self.seg_index = segregation_index(self)
         self.residential_segregation = segregation_index(self, unit="neighbourhood")
         self.res_seg_index = segregation_index(self, unit="agents_neighbourhood")
+        self.fixed_res_seg_index = segregation_index(self, unit="fixed_agents_neighbourhood", radius=1)
 
 
 
 
         print("seg_index", self.seg_index, "res_seg_index", self.res_seg_index, "residential_segregation",
-              self.residential_segregation)
+              self.residential_segregation, "fixed_res_seg_index",self.fixed_res_seg_index )
 
         # calculate these after residential_model
         if self.schedule.steps>self.residential_steps:

@@ -606,7 +606,7 @@ class SchoolModel(Model):
         for school in self.schools:
             school.get_local_composition()
             #cap = round(np.random.normal(loc=cap_max * self.avg_school_size, scale=self.avg_school_size * 0.05))
-            cap = np.round(self.avg_school_size * self.cap_max)
+            cap = self.avg_school_size * self.cap_max
 
             print("cap",self.avg_school_size, cap)
             segregation_index(self)

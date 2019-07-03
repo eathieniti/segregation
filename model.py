@@ -37,7 +37,9 @@ class SchoolAgent(Agent):
     def step(self):
         pass
 
-    def get_local_composition(self):
+    def get_local_school_composition(self):
+
+        # get the composition of the students in the neighbourhood
 
         local_composition = self.get_counts(self.students)
 
@@ -50,7 +52,7 @@ class SchoolAgent(Agent):
 
     def get_local_neighbourhood_composition(self):
 
-        local_neighbourhood_composition = []
+        # get the composition of the students in the neighbourhood
 
         local_neighbourhood_composition = self.get_counts(self.neighbourhood_students)
 
@@ -199,7 +201,6 @@ class HouseholdAgent(Agent):
         if bounded:
             x, y = self.get_closer_school().get_local_neighbourhood_composition()
 
-            print("x,y",x,y)
 
 
 
@@ -234,6 +235,7 @@ class HouseholdAgent(Agent):
 
         else:
             residential_candidates, utilities = self.get_residential_utilities()
+
             index_to_move = self.choose_candidate(U,utilities)
             self.move_residence(residential_candidates[index_to_move])
 
@@ -298,6 +300,7 @@ class HouseholdAgent(Agent):
             U_res_candidate = self.get_res_satisfaction(e)
             utilities.append(U_res_candidate)
 
+        print("e, util",empty_cells, utilities)
         return empty_cells, utilities
 
     def get_boltzman_probability(self,U, U_candidate):
@@ -319,13 +322,13 @@ class HouseholdAgent(Agent):
             self.school.students.remove(self)
 
             # update metrics for school - could be replaced by +-1
-            self.school.get_local_composition()
+            self.school.get_local_school_composition()
 
             # allocate elsewhere
             self.allocate(new_school, self.Dj[school_index])
 
             # now update the new school
-            self.school.get_local_composition()
+            self.school.get_local_school_composition()
 
             self.model.total_moves +=1
 
@@ -334,10 +337,7 @@ class HouseholdAgent(Agent):
     def move_residence(self, new_position):
         self.model.grid.move_agent(self, new_position)
 
-
-
-
-
+        self.model.res_moves += 1
 
 
 
@@ -349,8 +349,8 @@ class HouseholdAgent(Agent):
         # For the schools we add the distance satisfaction
 
 
-        x = school.get_local_composition()[self.type]
-        p = np.sum(school.get_local_composition())
+        x = school.get_local_school_composition()[self.type]
+        p = np.sum(school.get_local_school_composition())
 
         dist = float(dist)
 
@@ -409,9 +409,9 @@ class SchoolModel(Model):
     '''
 
     def __init__(self, height=54, width=54, density=0.99, num_schools=16,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6,\
-                 M0=0.8,M1=0.8,T=0.72,
+                 M0=0.8,M1=0.8,T=0.75,
                  alpha=0.2, temp=0.1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
-                 residential_steps=120,schelling=False,bounded=False,
+                 residential_steps=120,schelling=False,bounded=True,
                  residential_moves_per_step=500, school_moves_per_step = 500,radius=7,proportional = False,
                  ):
         '''
@@ -450,6 +450,7 @@ class SchoolModel(Model):
         self.schedule = RandomActivation(self)
         self.grid = SingleGrid(height, width, torus=False)
         self.total_moves = 0
+        self.res_moves = 0
 
         self.move = move
 
@@ -601,7 +602,7 @@ class SchoolModel(Model):
         # Calculate local composition
         # set size
         for school in self.schools:
-            school.get_local_composition()
+            school.get_local_school_composition()
             #cap = round(np.random.normal(loc=cap_max * self.avg_school_size, scale=self.avg_school_size * 0.05))
             cap = self.avg_school_size * self.cap_max
 
@@ -643,7 +644,7 @@ class SchoolModel(Model):
         self.res_happy = 0
         self.total_moves = 0
         self.total_considered = 0
-
+        self.res_moves = 0
 
         self.schedule.step()
 
@@ -708,19 +709,19 @@ class SchoolModel(Model):
             self.running = False
         compositions = []
         for school in self.schools:
-            self.my_collector.append([self.schedule.steps, school.unique_id, school.get_local_composition()])
-            self.compositions = school.get_local_composition()
-            compositions.append(school.get_local_composition()[0])
-            compositions.append(school.get_local_composition()[1])
+            self.my_collector.append([self.schedule.steps, school.unique_id, school.get_local_school_composition()])
+            self.compositions = school.get_local_school_composition()
+            compositions.append(school.get_local_school_composition()[0])
+            compositions.append(school.get_local_school_composition()[1])
 
-            self.compositions1 = int(school.get_local_composition()[1])
-            self.compositions0 = int(school.get_local_composition()[0])
+            self.compositions1 = int(school.get_local_school_composition()[1])
+            self.compositions0 = int(school.get_local_school_composition()[0])
 
         #print("comps",compositions,np.sum(compositions) )
         [self.comp0,self.comp1,self.comp2,self.comp3,self.comp4,self.comp5,self.comp6,self.comp7] = compositions[0:8]
         # collect data
         self.datacollector.collect(self)
-        print("moves",self.total_moves, "percent_happy", self.percent_happy)
+        print("moves",self.total_moves, "res_moves", self.res_moves, "percent_happy", self.percent_happy)
 
 
 

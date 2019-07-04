@@ -19,7 +19,7 @@ def segregation_index(model, unit = "school" , radius=1):
     if unit == "school":
 
         for s_ind, school in enumerate(model.schools):
-            local_composition = school.get_local_composition()
+            local_composition = school.get_local_school_composition()
 
             local_compositions[s_ind][:] = local_composition
             pi_jm[s_ind][:] = local_composition / np.sum(local_composition)
@@ -117,7 +117,7 @@ def calculate_segregation_index(local_compositions, pi_jm):
 def dissimilarity_index(model):
 
     for s_ind, school in enumerate(model.schools):
-        local_composition = school.get_local_composition()
+        local_composition = school.get_local_school_composition()
         model.pi_jm[s_ind][:] = local_composition
 
     pi_jm = model.pi_jm

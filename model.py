@@ -294,19 +294,24 @@ class HouseholdAgent(Agent):
             print("Error: not all schools are being evaluated")
         return utilities
 
-
     def get_residential_utilities(self):
 
         utilities = []
+        candidates = []
+        empties = []
         # Evaluate all residential sites
-        empty_cells = self.model.grid.empties
-        for e in empty_cells:
-            # TODO: empty site find the closer school
-            U_res_candidate = self.get_res_satisfaction(e)
-            utilities.append(U_res_candidate)
+        empties = self.model.grid.empties
+        for e in empties:
+            if e not in candidates and self.model.grid.is_cell_empty(e):
+                # TODO: empty site find the closer school
+                U_res_candidate = self.get_res_satisfaction(e)
+                utilities.append(U_res_candidate)
+                candidates.append(e)
 
-        #print("e, util",empty_cells, utilities)
-        return empty_cells, utilities
+        # also add the current position
+        candidates.append(self.pos)
+        utilities.append(self.get_res_satisfaction(self.pos))
+        return candidates, utilities
 
     def get_boltzman_probability(self,U, U_candidate):
 
@@ -413,10 +418,10 @@ class SchoolModel(Model):
     Model class for the Schelling segregation model.
     '''
 
-    def __init__(self, height=100, width=100, density=0.99, num_schools=64,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6,\
+    def __init__(self, height=100, width=100, density=0.995, num_schools=64,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6,\
                  M0=0.8,M1=0.8,T=0.75,
                  alpha=0.2, temp=0.1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
-                 residential_steps=0,schelling=False,bounded=False,
+                 residential_steps=120,schelling=False,bounded=False,
                  residential_moves_per_step=500, school_moves_per_step = 500,radius=6,proportional = False,
                  ):
         '''

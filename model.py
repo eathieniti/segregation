@@ -248,10 +248,15 @@ class HouseholdAgent(Agent):
         if self.model.move == "deterministic":
             proportional_probs = utilities / np.sum(utilities)
 
-            # if self.model.proportional:
-            #     index_to_move = np.random.choice(len(proportional_probs), p=proportional_probs)
-            # else:
             index_to_move = np.argmax(np.array(proportional_probs))
+
+
+        if self.model.move == "proportional":
+
+
+            proportional_probs = utilities / np.sum(utilities)
+            index_to_move = np.random.choice(len(proportional_probs), p=proportional_probs)
+
 
         elif self.model.move == "random":
 
@@ -300,7 +305,7 @@ class HouseholdAgent(Agent):
             U_res_candidate = self.get_res_satisfaction(e)
             utilities.append(U_res_candidate)
 
-        print("e, util",empty_cells, utilities)
+        #print("e, util",empty_cells, utilities)
         return empty_cells, utilities
 
     def get_boltzman_probability(self,U, U_candidate):
@@ -408,11 +413,11 @@ class SchoolModel(Model):
     Model class for the Schelling segregation model.
     '''
 
-    def __init__(self, height=54, width=54, density=0.99, num_schools=16,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6,\
+    def __init__(self, height=100, width=100, density=0.99, num_schools=64,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6,\
                  M0=0.8,M1=0.8,T=0.75,
                  alpha=0.2, temp=0.1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
-                 residential_steps=120,schelling=False,bounded=True,
-                 residential_moves_per_step=500, school_moves_per_step = 500,radius=7,proportional = False,
+                 residential_steps=0,schelling=False,bounded=False,
+                 residential_moves_per_step=500, school_moves_per_step = 500,radius=6,proportional = False,
                  ):
         '''
         '''
@@ -501,6 +506,18 @@ class SchoolModel(Model):
             yloc = np.tile(x1, 4)
 
             for i in range(len(x1 * 4)):
+                school_positions.append((xloc[i] * height / n, yloc[i] * width / n))
+
+        elif num_schools == 64:
+            school_positions = []
+            n=int(np.sqrt(num_schools)*2)
+            print(n)
+            x1 = range(1,int(n+1),2)
+
+            xloc = np.repeat(x1, int(n/2))
+            yloc = np.tile(x1, int(n/2))
+
+            for i in range(num_schools):
                 school_positions.append((xloc[i] * height / n, yloc[i] * width / n))
 
 
@@ -661,7 +678,7 @@ class SchoolModel(Model):
         if self.schedule.steps < self.residential_steps - 1 or self.schedule.steps ==1 :
             # during the residential steps keep recalculating the school neighbourhood compositions
 
-            print("recalculating neighbourhoods")
+            #print("recalculating neighbourhoods")
             for school in self.schools:
                 school.neighbourhood_students = []
 
@@ -695,8 +712,8 @@ class SchoolModel(Model):
 
 
 
-        print("seg_index", self.seg_index, "res_seg_index", self.res_seg_index, "residential_segregation",
-              self.residential_segregation, "fixed_res_seg_index",self.fixed_res_seg_index )
+        print("seg_index", "%.2f"%(self.seg_index), "var_res_seg", "%.2f"%(self.res_seg_index), "neighbourhood",
+              "%.2f"%(self.residential_segregation), "fixed_res_seg_index","%.2f"%(self.fixed_res_seg_index) )
 
         # calculate these after residential_model
         if self.schedule.steps>self.residential_steps:

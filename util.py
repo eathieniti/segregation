@@ -10,11 +10,13 @@ def segregation_index(model, unit = "school" , radius=1):
     """
     Calculates the local compositions for schools/neighbourhoods and then the segregation
     @unit: "school", "neighbourhood" or "agents_neighbourhood"
+    pi_jm = [proportion of like neighbours, proportion of unlike neighbours]
 
     """
     pi_jm = np.zeros(shape=(len(model.school_locations), len(model.household_types)))
     local_compositions = np.zeros(shape=(len(model.school_locations), len(model.household_types)))
 
+    pm = [1-model.minority_pc, model.minority_pc]
 
     if unit == "school":
 
@@ -37,21 +39,34 @@ def segregation_index(model, unit = "school" , radius=1):
         pi_jm = np.zeros(shape=(len(model.households), len(model.household_types)))
         local_compositions = np.zeros(shape=(len(model.households), len(model.household_types)))
 
-        for a_ind, household_agent in enumerate(model.households):
+        for a_ind, household_agent in enumerate(model.households[1:100]):
             local_composition = household_agent.get_local_neighbourhood_composition(position=household_agent.pos,radius=model.radius)
             local_compositions[a_ind][:] = local_composition
             pi_jm[a_ind][:] = local_composition / np.sum(local_composition)
+            model.pi_jm = pi_jm
+            household_agent.variable_local_composition = local_composition
 
+            #if model.schedule.steps>5:
+            #    print(household_agent.pos,local_composition / np.sum(local_composition), local_composition, np.sum(local_composition))
+
+            model.average_like_variable = np.mean(pi_jm[:,0])
     elif unit == "fixed_agents_neighbourhood":
 
         pi_jm = np.zeros(shape=(len(model.households), len(model.household_types)))
         local_compositions = np.zeros(shape=(len(model.households), len(model.household_types)))
 
         for a_ind, household_agent in enumerate(model.households):
+
             local_composition = household_agent.get_local_neighbourhood_composition(position=household_agent.pos,
                                                                                     radius=radius)
             local_compositions[a_ind][:] = local_composition
             pi_jm[a_ind][:] = local_composition / np.sum(local_composition)
+            model.pi_jm_fixed = pi_jm
+            household_agent.fixed_local_composition = local_composition
+
+            model.average_like_fixed = np.mean(pi_jm[:,0])
+
+
 
     else:
         print("Not valid segregation measure")
@@ -60,14 +75,14 @@ def segregation_index(model, unit = "school" , radius=1):
 
 
 
-    seg_index = calculate_segregation_index(local_compositions,pi_jm)
+    seg_index = calculate_segregation_index(local_compositions,pi_jm, pm)
     if seg_index:
         return(seg_index)
     else:
         return(np.nan)
 
 
-def calculate_segregation_index(local_compositions, pi_jm):
+def calculate_segregation_index(local_compositions, pi_jm, pm):
 
     """
     :param model
@@ -86,9 +101,10 @@ def calculate_segregation_index(local_compositions, pi_jm):
     tj = np.sum(local_compositions,axis=1, keepdims=True)
 
     #pm = np.sum(pi_jm,axis=0)/np.sum(pi_jm, keepdims=True)
-    pm = np.sum(local_compositions,axis=0)/np.sum(local_compositions, keepdims=True)
 
-    #print("pm",pm)
+    pm = np.array(pm)
+
+
 
     E = np.sum(pm*np.log(1/pm))
 
@@ -112,6 +128,8 @@ def calculate_segregation_index(local_compositions, pi_jm):
     #     print("pm",pm)
 
     return(seg_index)
+
+
 
 
 def dissimilarity_index(model):
@@ -141,3 +159,18 @@ def calculate_collective_utility(model):
     return(np.mean(utilities))
 
 
+
+
+def get_counts_util(students, model):
+
+        # just gathers counts for each type, independent of agent's type
+        # works for schools, agents, and schools neighbourhoods
+
+        local_composition = [0, 0]
+
+        d = [student.type for student in students]
+
+        for agent_type in range(len(model.household_types)):
+            local_composition[agent_type] = d.count(agent_type)
+
+        return (local_composition)

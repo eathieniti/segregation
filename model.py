@@ -9,7 +9,7 @@ import numpy as np
 import random
 from collections import Counter
 from util import segregation_index, calculate_segregation_index, dissimilarity_index, \
-    calculate_collective_utility
+    calculate_collective_utility, get_counts_util
 
 print("mesa",mesa.__file__)
 
@@ -37,11 +37,12 @@ class SchoolAgent(Agent):
     def step(self):
         pass
 
+
     def get_local_school_composition(self):
 
         # get the composition of the students in the neighbourhood
 
-        local_composition = self.get_counts(self.students)
+        local_composition = get_counts_util(students=self.students, model=self.model)
 
         self.local_composition = local_composition
 
@@ -54,21 +55,12 @@ class SchoolAgent(Agent):
 
         # get the composition of the students in the neighbourhood
 
-        local_neighbourhood_composition = self.get_counts(self.neighbourhood_students)
+        local_neighbourhood_composition = get_counts_util(self.neighbourhood_students, self.model)
 
         return (local_neighbourhood_composition)
 
 
-    def get_counts(self, students):
 
-        local_composition = [0, 0]
-
-        d = [student.type for student in students]
-
-        for agent_type in range(len(self.model.household_types)):
-            local_composition[agent_type] = d.count(agent_type)
-
-        return(local_composition)
 
 
 
@@ -95,6 +87,9 @@ class HouseholdAgent(Agent):
         self.school = None
         self.dist_to_school = None
         self.local_composition = None
+        self.fixed_local_composition = None
+        self.variable_local_composition = None
+
         self.pos = pos
 
         self.closer_school = 0
@@ -144,7 +139,9 @@ class HouseholdAgent(Agent):
             if self.model.total_considered < self.model.residential_moves_per_step:
                 # move residential
                 U_res = self.get_res_satisfaction(self.pos)
-               # print("U_res",U_res)
+                self.model.res_satisfaction.append(U_res)
+
+                # print("U_res",U_res)
                 if U_res < self.T:
 
                     # todo: implement different move schemes, for now only random
@@ -165,8 +162,9 @@ class HouseholdAgent(Agent):
             # school moves
                 # satisfaction in current school
                 U = self.get_school_satisfaction(self.school, self.dist_to_school)
+                self.model.satisfaction.append(U)
 
-                # If unhappy, compared to threshold move:
+            # If unhappy, compared to threshold move:
                 if U < self.T:
                     #print('unhappy')
                     self.evaluate_move(U, school=True)
@@ -182,7 +180,7 @@ class HouseholdAgent(Agent):
     def get_res_satisfaction(self, position):
 
 
-        x, y = self.get_local_neighbourhood_composition(position, radius=self.model.radius ,bounded=self.model.bounded)
+        x, y = self.get_like_neighbourhood_composition(position, radius=self.model.radius ,bounded=self.model.bounded)
 
         p = x + y
         P = self.ethnic_utility(x=x, p=p, schelling=self.schelling)
@@ -192,17 +190,14 @@ class HouseholdAgent(Agent):
         return(P)
 
 
-    def get_local_neighbourhood_composition(self, position, radius, bounded=False):
+    def get_like_neighbourhood_composition(self, position, radius, bounded=False):
 
         # warning: for now only suitable for 2 gropups
-        x = 0
-        y = 0
+        x = 0 # like neighbours
+        y = 0 # unlike neighbours
 
         if bounded:
             x, y = self.get_closer_school().get_local_neighbourhood_composition()
-
-
-
 
         else:
 
@@ -213,8 +208,31 @@ class HouseholdAgent(Agent):
                         x += 1
                     else:
                         y += 1
+            #print('x,y,',x,y)
 
         return(x, y)
+
+
+
+    def get_local_neighbourhood_composition(self, position, radius, bounded=False):
+
+        # warning: for now only suitable for 2 gropups
+        type1 = 0
+        type2 = 0
+        # bounded not working yet
+        # local_composition[agent_type]
+        # if bounded:
+        #     x, y = self.get_closer_school().get_local_neighbourhood_composition()
+        #
+        # else:
+
+
+
+        neighbours = self.model.grid.get_neighbors(position, moore=True, radius=radius)
+
+        local_composition = get_counts_util(neighbours, self.model)
+
+        return (local_composition)
 
 
     def allocate(self, school, dist):
@@ -301,7 +319,9 @@ class HouseholdAgent(Agent):
         empties = []
         # Evaluate all residential sites
         empties = self.model.grid.empties
-        for e in empties:
+        empties_shuffled = empties[0::5]
+        random.shuffle(empties_shuffled)
+        for e in empties_shuffled:
             if e not in candidates and self.model.grid.is_cell_empty(e):
                 # TODO: empty site find the closer school
                 U_res_candidate = self.get_res_satisfaction(e)
@@ -418,12 +438,12 @@ class SchoolModel(Model):
     Model class for the Schelling segregation model.
     '''
 
-    def __init__(self, height=100, width=100, density=0.995, num_schools=64,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6,\
+    def __init__(self, height=100, width=100, density=0.95, num_schools=64,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6,\
                  M0=0.8,M1=0.8,T=0.75,
-                 alpha=0.2, temp=0.1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
+                 alpha=0.2, temp=0.1, cap_max=1.01, move="boltzmann", symmetric_positions=False,
                  residential_steps=120,schelling=False,bounded=False,
-                 residential_moves_per_step=500, school_moves_per_step = 500,radius=6,proportional = False,
-                 ):
+                 residential_moves_per_step=500, school_moves_per_step = 500,radius=7,proportional = False,
+                 torus=False):
         '''
         '''
         # Options  for the model
@@ -441,7 +461,7 @@ class SchoolModel(Model):
         self.cap_max=cap_max
         self.T = T
         self.radius = radius
-        self.household_types = [0, 1]
+        self.household_types = [0, 1] # majority, minority !!
         self.symmetric_positions = symmetric_positions
         self.schelling=schelling
 
@@ -457,8 +477,11 @@ class SchoolModel(Model):
 
 
         self.num_households = int(width*height*density)
+        num_min_households = int(self.minority_pc * self.num_households)
+        self.pm = [self.num_households-num_min_households, num_min_households]
+
         self.schedule = RandomActivation(self)
-        self.grid = SingleGrid(height, width, torus=False)
+        self.grid = SingleGrid(height, width, torus=torus)
         self.total_moves = 0
         self.res_moves = 0
 
@@ -479,13 +502,18 @@ class SchoolModel(Model):
         self.comp0,self.comp1,self.comp2,self.comp3,self.comp4,self.comp5,self.comp6,self.comp7, \
         self.comp8, self.comp9, self.comp10, self.comp11, self.comp12, self.comp13, self.comp14, self.comp15 = 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
         self.satisfaction = []
-
+        self.pi_jm = []
+        self.pi_jm_fixed = []
         self.compositions = []
-
+        self.average_like_fixed = 0
+        self.average_like_variable = 0
 
 
         self.my_collector = []
-        self.max_dist = self.height*np.sqrt(2)
+        if torus:
+            self.max_dist = self.height/np.sqrt(2)
+        else:
+            self.max_dist = self.height*np.sqrt(2)
 
 
 
@@ -616,9 +644,9 @@ class SchoolModel(Model):
                              "compositions1": "compositions1",
                                      "comp0": "comp0", "comp1": "comp1", "comp2": "comp2", "comp3": "comp3", "comp4": "comp4", "comp5": "comp5", "comp6": "comp6",
                              "comp7": "comp7","compositions": "compositions",
-                             "collective_utility":"collective_utility"},
+                             "collective_utility":"collective_utility", "pi_jm":"pi_jm", "pi_jm_fixed": "pi_jm_fixed"},
             agent_reporters={"local_composition": "local_composition", "type": lambda a: a.type,
-                             "id": lambda a: a.unique_id, })
+                             "id": lambda a: a.unique_id, "fixed_local_composition": "fixed_local_composition","variable_local_composition": "variable_local_composition"})
 
 
         # Calculate local composition
@@ -667,6 +695,8 @@ class SchoolModel(Model):
         self.total_moves = 0
         self.total_considered = 0
         self.res_moves = 0
+        self.satisfaction = []
+        self.res_satisfaction=[]
 
         self.schedule.step()
 
@@ -713,12 +743,15 @@ class SchoolModel(Model):
         self.residential_segregation = segregation_index(self, unit="neighbourhood")
         self.res_seg_index = segregation_index(self, unit="agents_neighbourhood")
         self.fixed_res_seg_index = segregation_index(self, unit="fixed_agents_neighbourhood", radius=1)
-
+        satisfaction = np.mean(self.satisfaction)
+        res_satisfaction = np.mean(self.res_satisfaction)
 
 
 
         print("seg_index", "%.2f"%(self.seg_index), "var_res_seg", "%.2f"%(self.res_seg_index), "neighbourhood",
-              "%.2f"%(self.residential_segregation), "fixed_res_seg_index","%.2f"%(self.fixed_res_seg_index) )
+              "%.2f"%(self.residential_segregation), "fixed_res_seg_index","%.2f"%(self.fixed_res_seg_index), \
+              "res_satisfaction %.2f" %res_satisfaction,"satisfaction %.2f" %satisfaction,\
+              "average_like_fixed %.2f"%self.average_like_fixed,"average_like_var %.2f"%self.average_like_variable  )
 
         # calculate these after residential_model
         if self.schedule.steps>self.residential_steps:
@@ -744,8 +777,6 @@ class SchoolModel(Model):
         # collect data
         self.datacollector.collect(self)
         print("moves",self.total_moves, "res_moves", self.res_moves, "percent_happy", self.percent_happy)
-
-
 
 
 

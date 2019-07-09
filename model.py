@@ -319,8 +319,12 @@ class HouseholdAgent(Agent):
         empties = []
         # Evaluate all residential sites
         empties = self.model.grid.empties
-        empties_shuffled = empties[0::5]
-        random.shuffle(empties_shuffled)
+
+        # just to make things faster..
+        #empties_shuffled = empties[0::5]
+        #random.shuffle(empties_shuffled)
+
+        empties_shuffled =empties
         for e in empties_shuffled:
             if e not in candidates and self.model.grid.is_cell_empty(e):
                 # TODO: empty site find the closer school

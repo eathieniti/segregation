@@ -148,7 +148,6 @@ class HouseholdAgent(Agent):
                     # find all empty places
                     # rank them
                     # take one with boltzmann probability.
-                    #self.model.grid.move_to_empty(self)
                     self.evaluate_move(U_res, school=False)
 
                 else:
@@ -184,6 +183,7 @@ class HouseholdAgent(Agent):
 
         p = x + y
         P = self.ethnic_utility(x=x, p=p, schelling=self.schelling)
+
 
         self.res_satisfaction = P
 
@@ -444,8 +444,8 @@ class SchoolModel(Model):
 
     def __init__(self, height=100, width=100, density=0.95, num_schools=64,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6,\
                  M0=0.8,M1=0.8,T=0.75,
-                 alpha=0.2, temp=0.1, cap_max=1.01, move="boltzmann", symmetric_positions=False,
-                 residential_steps=120,schelling=False,bounded=False,
+                 alpha=0.2, temp=0.1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
+                 residential_steps=200,schelling=False,bounded=False,
                  residential_moves_per_step=500, school_moves_per_step = 500,radius=7,proportional = False,
                  torus=False):
         '''
@@ -525,7 +525,7 @@ class SchoolModel(Model):
         # We use a grid iterator that returns
         # the coordinates of a cell as well as
         # its contents. (coord_iter)
-        # Set up schools
+        # Set up schools in symmetric positions along the grid
 
         if num_schools == 4:
             school_positions = [(width/4,height/4),(width*3/4,height/4),(width/4,height*3/4),(width*3/4,height*3/4)]
@@ -648,7 +648,9 @@ class SchoolModel(Model):
                              "compositions1": "compositions1",
                                      "comp0": "comp0", "comp1": "comp1", "comp2": "comp2", "comp3": "comp3", "comp4": "comp4", "comp5": "comp5", "comp6": "comp6",
                              "comp7": "comp7","compositions": "compositions",
-                             "collective_utility":"collective_utility", "pi_jm":"pi_jm", "pi_jm_fixed": "pi_jm_fixed"},
+                             "collective_utility":"collective_utility", "pi_jm":"pi_jm", "pi_jm_fixed": "pi_jm_fixed",
+                             "res_satisfaction": "res_satisfaction","satisfaction":"satisfaction"
+                             },
             agent_reporters={"local_composition": "local_composition", "type": lambda a: a.type,
                              "id": lambda a: a.unique_id, "fixed_local_composition": "fixed_local_composition","variable_local_composition": "variable_local_composition"})
 

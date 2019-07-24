@@ -648,8 +648,7 @@ class SchoolModel(Model):
                              "compositions1": "compositions1",
                                      "comp0": "comp0", "comp1": "comp1", "comp2": "comp2", "comp3": "comp3", "comp4": "comp4", "comp5": "comp5", "comp6": "comp6",
                              "comp7": "comp7","compositions": "compositions",
-                             "collective_utility":"collective_utility",
-                             "res_satisfaction": "res_satisfaction","satisfaction":"satisfaction"
+                             "collective_utility":"collective_utility"
                              },
             agent_reporters={"local_composition": "local_composition", "type": lambda a: a.type,
                              "id": lambda a: a.unique_id, "fixed_local_composition": "fixed_local_composition","variable_local_composition": "variable_local_composition"})

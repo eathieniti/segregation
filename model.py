@@ -82,6 +82,7 @@ class HouseholdAgent(Agent):
         self.type = agent_type
         self.f = model.f[agent_type]
         self.M = model.M[agent_type]
+        self.fs = model.fs
         self.T = model.T
         self.children = 1
         self.school = None
@@ -182,7 +183,7 @@ class HouseholdAgent(Agent):
         x, y = self.get_like_neighbourhood_composition(position, radius=self.model.radius ,bounded=self.model.bounded)
 
         p = x + y
-        P = self.ethnic_utility(x=x, p=p, schelling=self.schelling)
+        P = self.ethnic_utility(x=x, p=p, f=self.f, schelling=self.schelling)
 
 
         self.res_satisfaction = P
@@ -388,7 +389,7 @@ class HouseholdAgent(Agent):
 
         dist = float(dist)
 
-        P = self.ethnic_utility(x,p, schelling =self.schelling)
+        P = self.ethnic_utility(x,p, self.fs,schelling =self.schelling)
 
 
         D = (self.model.max_dist - dist) / self.model.max_dist
@@ -399,12 +400,12 @@ class HouseholdAgent(Agent):
         return(U)
 
 
-    def ethnic_utility(self, x, p, schelling=False):
+    def ethnic_utility(self, x, p, f, schelling=False):
 
         # x: local number of agents of own group in the school or neighbourhood
         # p: total number of agents in the school or neighbourhood
         # satisfaction
-        fp = float(self.f * p)
+        fp = float(f * p)
         #print("fp,x",fp,x)
 
 
@@ -445,9 +446,9 @@ class SchoolModel(Model):
     def __init__(self, height=100, width=100, density=0.95, num_schools=64,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6,\
                  M0=0.8,M1=0.8,T=0.75,
                  alpha=0.2, temp=0.1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
-                 residential_steps=200,schelling=False,bounded=False,
-                 residential_moves_per_step=500, school_moves_per_step = 500,radius=7,proportional = False,
-                 torus=False):
+                 residential_steps=20,schelling=False,bounded=False,
+                 residential_moves_per_step=2000, school_moves_per_step = 2000,radius=7,proportional = False,
+                 torus=False,fs=0.3):
         '''
         '''
         # Options  for the model
@@ -459,6 +460,7 @@ class SchoolModel(Model):
         self.homophily = homophily
         self.f = [f0,f1]
         self.M = [M0,M1]
+        self.fs = fs
         self.residential_steps = residential_steps
         self.minority_pc = minority_pc
         self.bounded = bounded
@@ -648,9 +650,9 @@ class SchoolModel(Model):
                              "compositions1": "compositions1",
                                      "comp0": "comp0", "comp1": "comp1", "comp2": "comp2", "comp3": "comp3", "comp4": "comp4", "comp5": "comp5", "comp6": "comp6",
                              "comp7": "comp7","compositions": "compositions",
-                             "collective_utility":"collective_utility", "pi_jm":"pi_jm", "pi_jm_fixed": "pi_jm_fixed",
-                             "res_satisfaction": "res_satisfaction","satisfaction":"satisfaction"
-                             },
+                             "collective_utility":"collective_utility",
+                             "res_satisfaction": "res_satisfaction","satisfaction":"satisfaction",
+                             "res_happy":"res_happy"},
             agent_reporters={"local_composition": "local_composition", "type": lambda a: a.type,
                              "id": lambda a: a.unique_id, "fixed_local_composition": "fixed_local_composition","variable_local_composition": "variable_local_composition"})
 

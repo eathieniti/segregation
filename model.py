@@ -101,7 +101,26 @@ class HouseholdAgent(Agent):
 
 
 
-    def calculate_distances(self):
+    # def calculate_distances(self):
+    #     '''
+    #     calculate distance between school and household
+    #     Euclidean or gis shortest road route
+    #     :return: dist
+    #     '''
+    #     Dj = np.zeros((len(self.model.school_locations),1))
+    #
+    #     for i, loc in enumerate(self.model.school_locations):
+    #
+    #         Dj[i] = np.linalg.norm(np.array(self.pos)- np.array(loc))
+    #     self.Dj = Dj
+    #
+    #     print("calculating distances", Dj)
+    #
+    #     closer_school_index = np.argmin(self.Dj)
+    #     self.closer_school = self.model.schools[closer_school_index]
+    #
+
+    def calculate_distances(self, Dij):
         '''
         calculate distance between school and household
         Euclidean or gis shortest road route
@@ -114,11 +133,10 @@ class HouseholdAgent(Agent):
             Dj[i] = np.linalg.norm(np.array(self.pos)- np.array(loc))
         self.Dj = Dj
 
-        #print("calculating distances", Dj)
+        print("calculating distances", Dj)
 
         closer_school_index = np.argmin(self.Dj)
         self.closer_school = self.model.schools[closer_school_index]
-
 
 
     def get_closer_school(self):
@@ -327,7 +345,9 @@ class HouseholdAgent(Agent):
 
         empties_shuffled =empties
         for e in empties_shuffled:
-            if e not in candidates and self.model.grid.is_cell_empty(e):
+            #if e not in candidates and self.model.grid.is_cell_empty(e):
+            if e not in candidates:
+
                 # TODO: empty site find the closer school
                 U_res_candidate = self.get_res_satisfaction(e)
                 utilities.append(U_res_candidate)
@@ -389,7 +409,7 @@ class HouseholdAgent(Agent):
 
         dist = float(dist)
 
-        P = self.ethnic_utility(x,p, self.fs,schelling =self.schelling)
+        P = self.ethnic_utility(x=x,p=p, f=self.fs,schelling =self.schelling)
 
 
         D = (self.model.max_dist - dist) / self.model.max_dist
@@ -427,7 +447,7 @@ class HouseholdAgent(Agent):
                     P = float(x) / fp
 
                 else:
-                    P = self.M + (p - x) * (1 - self.M) / (p * (1 - self.f))
+                    P = self.M + (p - x) * (1 - self.M) / (p * (1 - f))
 
 
 
@@ -446,9 +466,9 @@ class SchoolModel(Model):
     def __init__(self, height=100, width=100, density=0.95, num_schools=64,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6,\
                  M0=0.8,M1=0.8,T=0.75,
                  alpha=0.2, temp=0.1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
-                 residential_steps=40,schelling=False,bounded=False,
+                 residential_steps=1,schelling=False,bounded=False,
                  residential_moves_per_step=2000, school_moves_per_step = 2000,radius=7,proportional = False,
-                 torus=False,fs=0.3):
+                 torus=False,fs=0.9):
         '''
         '''
         # Options  for the model
@@ -616,15 +636,18 @@ class SchoolModel(Model):
             #self.grid.place_agent(decorator_agent, pos)
 
 
-            agent.calculate_distances()
 
             self.households.append(agent)
+            self.schedule.add(agent)
 
+
+        self.calculate_all_distances()
+
+        for agent in self.households:
             random_school_index = random.randint(0, len(self.schools)-1)
             candidate_school = self.schools[random_school_index]
             agent.allocate(candidate_school,agent.Dj[random_school_index])
 
-            # closer_school = household.schools[np.argmin(household.)]
 
 
 
@@ -635,7 +658,6 @@ class SchoolModel(Model):
 
 
 
-            self.schedule.add(agent)
 
         self.pi_jm = np.zeros(shape=(len(self.school_locations),len(self.household_types )))
         self.local_compositions =  np.zeros(shape=(len(self.school_locations),len(self.household_types )))
@@ -681,15 +703,26 @@ class SchoolModel(Model):
 
 
 
-    # def calculate_distances(self):
-    #     '''
-    #     calculate distance between school and household
-    #     Euclidean or gis shortest road route
-    #     :return: dist
-    #     '''
-    #
-    #     Dij = distance.cdist(np.array(self.household_locations), np.array(self.school_locations), 'euclidean')
-    #     return(Dij)
+    def calculate_all_distances(self):
+        '''
+        calculate distance between school and household
+        Euclidean or gis shortest road route
+        :return: dist
+        '''
+
+        Dij = distance.cdist(np.array(self.household_locations), np.array(self.school_locations), 'euclidean')
+
+        for i, household in enumerate(self.households):
+            Dj = Dij[i,:]
+            household.Dj = Dj
+
+            # Calculate distances of the schools - define the school-neighbourhood and compare
+            # closer_school = household.schools[np.argmin(household.)]
+            closer_school_index = np.argmin(household.Dj)
+            household.closer_school = self.schools[closer_school_index]
+            household.closer_school.neighbourhood_students.append(household)
+
+        return(Dij)
 
 
 
@@ -727,20 +760,25 @@ class SchoolModel(Model):
 
 
 
-            household_locations = []
+            self.household_locations = []
+            for i, household in enumerate(self.households):
+                self.household_locations.append(household.pos)
 
 
-            for household in self.households:
-                household.calculate_distances()
-                # Calculate distances of the schools - define the school-neighbourhood and compare
-                # closer_school = household.schools[np.argmin(household.)]
-                closer_school_index = np.argmin(household.Dj)
-                household.closer_school = self.schools[closer_school_index]
-                household.closer_school.neighbourhood_students.append(household)
+            self.calculate_all_distances()
+            #print("all", self.calculate_all_distances()[i, :])
 
-                # Initialize house allocation to school
-                #household.move_school(closer_school_index, self.schools[closer_school_index])
-
+            # for i, household in enumerate(self.households):
+            #     print(household.calculate_distances())
+            #     # Calculate distances of the schools - define the school-neighbourhood and compare
+            #     # closer_school = household.schools[np.argmin(household.)]
+            #     closer_school_index = np.argmin(household.Dj)
+            #     household.closer_school = self.schools[closer_school_index]
+            #     household.closer_school.neighbourhood_students.append(household)
+            #
+            #     # Initialize house allocation to school
+            #     #household.move_school(closer_school_index, self.schools[closer_school_index])
+            #
 
 
 
@@ -770,6 +808,8 @@ class SchoolModel(Model):
 
         if self.happy == self.schedule.get_agent_count():
             self.running = False
+
+
         compositions = []
         for school in self.schools:
             self.my_collector.append([self.schedule.steps, school.unique_id, school.get_local_school_composition()])

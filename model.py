@@ -460,7 +460,6 @@ class SchoolModel(Model):
         self.homophily = homophily
         self.f = [f0,f1]
         self.M = [M0,M1]
-        self.fs = fs
         self.residential_steps = residential_steps
         self.minority_pc = minority_pc
         self.bounded = bounded
@@ -470,7 +469,11 @@ class SchoolModel(Model):
         self.household_types = [0, 1] # majority, minority !!
         self.symmetric_positions = symmetric_positions
         self.schelling=schelling
-
+        
+        if fs!="eq":
+            self.fs = fs
+        else:
+            self.fs = f0
 
         # choice parameters
         self.alpha = alpha

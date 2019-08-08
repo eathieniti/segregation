@@ -315,7 +315,6 @@ class HouseholdAgent(Agent):
 
         utilities = []
         for school_index, candidate_school in enumerate(self.model.schools):
-
             # check whether school is eligible to move to
             # if candidate_school.current_capacity <= (candidate_school.capacity + 10) and candidate_school!=self.school:
             if candidate_school.current_capacity <= (candidate_school.capacity):
@@ -325,25 +324,26 @@ class HouseholdAgent(Agent):
             else:
                 utilities.append(0)
                 # print(self.pos, candidate_school.pos, candidate_school.unique_id,self.Dj[school_index] )
-
         if len(utilities) != len(self.model.schools):
 
             print("Error: not all schools are being evaluated")
+            sys.exit()
         return utilities
 
     def get_residential_utilities(self):
 
-        utilities = []
-        candidates = []
-        empties = []
+        empties = [] # just a list of positions
+        candidates = [] # just a list of positions
+        utilities = [] # utilities of the candidate positions
+
         # Evaluate all residential sites
         empties = self.model.grid.empties
 
-        # just to make things faster..
-        #empties_shuffled = empties[0::5]
-        #random.shuffle(empties_shuffled)
+        # just to make things faster only consider a subset of empty sites
+        random.shuffle(empties)
+        empties_shuffled = empties[0::5]
 
-        empties_shuffled =empties
+        #empties_shuffled =empties
         for e in empties_shuffled:
             #if e not in candidates and self.model.grid.is_cell_empty(e):
             if e not in candidates:
@@ -466,7 +466,7 @@ class SchoolModel(Model):
     def __init__(self, height=100, width=100, density=0.95, num_schools=64,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6,\
                  M0=0.8,M1=0.8,T=0.75,
                  alpha=0.2, temp=0.1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
-                 residential_steps=1,schelling=False,bounded=False,
+                 residential_steps=10,schelling=False,bounded=False,
                  residential_moves_per_step=2000, school_moves_per_step = 2000,radius=7,proportional = False,
                  torus=False,fs=0.9):
         '''
@@ -741,6 +741,8 @@ class SchoolModel(Model):
 
         self.schedule.step()
 
+        satisfaction = 0
+        res_satisfaction=0
         print("happy", self.happy)
         print("total_considered", self.total_considered)
 
@@ -751,8 +753,9 @@ class SchoolModel(Model):
 
 
 
-        if self.schedule.steps < self.residential_steps - 1 or self.schedule.steps ==1 :
+        if self.schedule.steps <= self.residential_steps or self.schedule.steps ==1 :
             # during the residential steps keep recalculating the school neighbourhood compositions
+            # this is required for the neighbourhoods metric
 
             #print("recalculating neighbourhoods")
             for school in self.schools:
@@ -781,29 +784,26 @@ class SchoolModel(Model):
             #
 
 
+            self.residential_segregation = segregation_index(self, unit="neighbourhood")
+            self.res_seg_index = segregation_index(self, unit="agents_neighbourhood")
+            self.fixed_res_seg_index = segregation_index(self, unit="fixed_agents_neighbourhood", radius=1)
+            res_satisfaction = np.mean(self.res_satisfaction)
 
 
 
-
-        self.seg_index = segregation_index(self)
-        self.residential_segregation = segregation_index(self, unit="neighbourhood")
-        self.res_seg_index = segregation_index(self, unit="agents_neighbourhood")
-        self.fixed_res_seg_index = segregation_index(self, unit="fixed_agents_neighbourhood", radius=1)
-        satisfaction = np.mean(self.satisfaction)
-        res_satisfaction = np.mean(self.res_satisfaction)
-
+        satisfaction =0
+        # calculate these after residential_model
+        if self.schedule.steps>self.residential_steps:
+            self.collective_utility = calculate_collective_utility(self)
+            print(self.collective_utility)
+            self.seg_index = segregation_index(self)
+            satisfaction = np.mean(self.satisfaction)
 
 
         print("seg_index", "%.2f"%(self.seg_index), "var_res_seg", "%.2f"%(self.res_seg_index), "neighbourhood",
               "%.2f"%(self.residential_segregation), "fixed_res_seg_index","%.2f"%(self.fixed_res_seg_index), \
               "res_satisfaction %.2f" %res_satisfaction,"satisfaction %.2f" %satisfaction,\
               "average_like_fixed %.2f"%self.average_like_fixed,"average_like_var %.2f"%self.average_like_variable  )
-
-        # calculate these after residential_model
-        if self.schedule.steps>self.residential_steps:
-            self.collective_utility = calculate_collective_utility(self)
-            print(self.collective_utility)
-
 
 
         if self.happy == self.schedule.get_agent_count():

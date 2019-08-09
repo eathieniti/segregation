@@ -743,6 +743,8 @@ class SchoolModel(Model):
 
         self.schedule.step()
 
+        satisfaction = 0
+        res_satisfaction=0
         print("happy", self.happy)
         print("total_considered", self.total_considered)
 
@@ -753,8 +755,9 @@ class SchoolModel(Model):
 
 
 
-        if self.schedule.steps == self.residential_steps - 1 or self.schedule.steps ==1 :
+        if self.schedule.steps <= self.residential_steps or self.schedule.steps ==1 :
             # during the residential steps keep recalculating the school neighbourhood compositions
+            # this is required for the neighbourhoods metric
 
             #print("recalculating neighbourhoods")
             for school in self.schools:
@@ -783,29 +786,26 @@ class SchoolModel(Model):
             #
 
 
+            self.residential_segregation = segregation_index(self, unit="neighbourhood")
+            self.res_seg_index = segregation_index(self, unit="agents_neighbourhood")
+            self.fixed_res_seg_index = segregation_index(self, unit="fixed_agents_neighbourhood", radius=1)
+            res_satisfaction = np.mean(self.res_satisfaction)
 
 
 
-
-        self.residential_segregation = segregation_index(self, unit="neighbourhood")
-        self.res_seg_index = segregation_index(self, unit="agents_neighbourhood")
-        self.fixed_res_seg_index = segregation_index(self, unit="fixed_agents_neighbourhood", radius=1)
-        satisfaction = np.mean(self.satisfaction)
-        res_satisfaction = np.mean(self.res_satisfaction)
-
+        satisfaction =0
+        # calculate these after residential_model
+        if self.schedule.steps>self.residential_steps:
+            self.collective_utility = calculate_collective_utility(self)
+            print(self.collective_utility)
+            self.seg_index = segregation_index(self)
+            satisfaction = np.mean(self.satisfaction)
 
 
         print("seg_index", "%.2f"%(self.seg_index), "var_res_seg", "%.2f"%(self.res_seg_index), "neighbourhood",
               "%.2f"%(self.residential_segregation), "fixed_res_seg_index","%.2f"%(self.fixed_res_seg_index), \
               "res_satisfaction %.2f" %res_satisfaction,"satisfaction %.2f" %satisfaction,\
               "average_like_fixed %.2f"%self.average_like_fixed,"average_like_var %.2f"%self.average_like_variable  )
-
-        # calculate these after residential_model
-        if self.schedule.steps>self.residential_steps:
-            self.collective_utility = calculate_collective_utility(self)
-            print(self.collective_utility)
-            self.seg_index = segregation_index(self)
-
 
 
         if self.happy == self.schedule.get_agent_count():

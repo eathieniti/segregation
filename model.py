@@ -343,7 +343,7 @@ class HouseholdAgent(Agent):
         random.shuffle(empties)
         empties_shuffled = empties[0::5]
 
-        empties_shuffled =empties
+        #empties_shuffled =empties
         for e in empties_shuffled:
             #if e not in candidates and self.model.grid.is_cell_empty(e):
             if e not in candidates:

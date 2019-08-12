@@ -338,6 +338,9 @@ class HouseholdAgent(Agent):
 
         # Evaluate all residential sites
         empties = self.model.grid.empties
+        # convert set to list 
+        empties = list(empties)
+
 
         # just to make things faster only consider a subset of empty sites
         random.shuffle(empties)

@@ -337,6 +337,9 @@ class HouseholdAgent(Agent):
 
         # Evaluate all residential sites
         empties = self.model.grid.empties
+        # convert set to list 
+        empties = list(empties)
+
 
         # just to make things faster only consider a subset of empty sites
         random.shuffle(empties)
@@ -478,7 +481,6 @@ class SchoolModel(Model):
         self.num_schools= num_schools
         self.f = [f0,f1]
         self.M = [M0,M1]
-        self.fs = fs
         self.residential_steps = residential_steps
         self.minority_pc = minority_pc
         self.bounded = bounded
@@ -490,6 +492,10 @@ class SchoolModel(Model):
         self.schelling=schelling
         self.school_pos = school_pos
 
+        if fs!="eq":
+            self.fs = fs
+        else:
+            self.fs = f0
 
         # choice parameters
         self.alpha = alpha
@@ -714,9 +720,8 @@ class SchoolModel(Model):
                              "compositions1": "compositions1",
                                      "comp0": "comp0", "comp1": "comp1", "comp2": "comp2", "comp3": "comp3", "comp4": "comp4", "comp5": "comp5", "comp6": "comp6",
                              "comp7": "comp7","compositions": "compositions",
-                             "collective_utility":"collective_utility",
-                             "res_satisfaction": "res_satisfaction","satisfaction":"satisfaction",
-                             "res_happy":"res_happy"},
+                             "collective_utility":"collective_utility"
+                             },
             agent_reporters={"local_composition": "local_composition", "type": lambda a: a.type,
                              "id": lambda a: a.unique_id,
                              #"fixed_local_composition": "fixed_local_composition",

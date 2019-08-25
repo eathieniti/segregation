@@ -23,22 +23,28 @@ def get_filename_pattern():
 
     if factor =="alpha":
 
-        filename_pattern="fast3_minority=%.2f_f0=%.2f_f1=%.2f_M0=%.2f_M1=%.2f_temp_%.2f_height_%d_steps_%d_move_%s_sym_%s_res_%d_schools_%d_den_%.2f_schell_%s_school_mps_%d_res_mps_%d_bounded_%s_radius_%d_cp_%.2f_T_%.2f_fs_%.2f"%(
+        filename_pattern="fasts_minority=%.2f_f0=%.2f_f1=%.2f_M0=%.2f_M1=%.2f_temp_%.2f_height_%d_steps_%d_move_%s_sym_%s_res_%d_schools_%d_den_%.2f_schell_%s_school_mps_%d_res_mps_%d_bounded_%s_radius_%d_cp_%.2f_T_%.2f_fs_%.2f"%(
             factor,minority_pc, f0, f0, M0, M1 ,temp,height, num_steps,
         move,symmetric_positions, residential_steps, num_schools, density,schelling,
         school_moves_per_step, residential_moves_per_step, bounded,radius,cap_max, T,fs_print)
 
     if factor =='f0':
-        filename_pattern="fast3_%s_minority=%.2f_M0=%.2f_M1=%.2f_temp_%.2f_height_%d_steps_%d_move_%s_sym_%s_res_%d_schools_%d_alpha_%.2f_den_%.2f_schell_%s_school_mps_%d_res_mps_%d_bounded_%s_radius_%d_cp_%.2f_T_%.2f_fs_%.2f"%(
+        filename_pattern="fasts_sub_%s_minority=%.2f_M0=%.2f_M1=%.2f_temp_%.2f_height_%d_steps_%d_move_%s_sym_%s_res_%d_schools_%d_alpha_%.2f_den_%.2f_schell_%s_school_mps_%d_res_mps_%d_bounded_%s_radius_%d_cp_%.2f_T_%.2f_fs_%.2f"%(
             factor,minority_pc, M0, M1, temp,height, num_steps,
         move,symmetric_positions, residential_steps, num_schools, alpha, density,schelling,
         school_moves_per_step, residential_moves_per_step, bounded, radius, cap_max, T,fs_print)
 
     return(filename_pattern)
 
+def run_simulation():
+    
+    start_time=time.time()
+    i=0;
+    
+    all_models_df = pd.DataFrame( columns={"agent_count", "seg_index", "happy","total_moves", "iter", "f0", "f1"})
+    all_model_agents_df = pd.DataFrame( columns={"AgentID","local_composition", "type", "id", "iter", "f0","f1"})
 
-def run_one_simulation(i,f0, return_list):
-        print(f0)
+    for f0 in all_f0_f1:
         start_time=time.time()
         model = SchoolModel(height=height, width=width, density=density, num_schools=num_schools,minority_pc=minority_pc, homophily=3,f0=f0,f1=f0,M0=M0,T=T,
                             M1=M1 , alpha=alpha, temp=temp,cap_max=cap_max,
@@ -56,6 +62,8 @@ def run_one_simulation(i,f0, return_list):
             print(x2,x1)
             average_diff = (x2-x1)/x2
             print("steps ",model.schedule.steps)
+
+
 
 
         model_out = model.datacollector.get_model_vars_dataframe()
@@ -78,43 +86,20 @@ def run_one_simulation(i,f0, return_list):
         model_out_agents['f1'] = np.repeat(f1, length_agents)
         model_out_agents["alpha"] = np.repeat(alpha, length_agents)
         model_out_agents["res"] = np.repeat(residential_steps, length_agents)
-    
+
+
+        #all_models.append(model_out)
+        all_models_df = all_models_df.append(model_out)
+        all_model_agents_df = all_model_agents_df.append(model_out_agents)
+        i+=1
+
+
+
+
+
+
         elapsed_time = time.time() - start_time
         print(elapsed_time)
-        return_list.append(model_out)
-        return(model_out)
-
-
-
-def run_simulation():
-    print("proceses",multiprocessing.cpu_count())
-    
-    manager=multiprocessing.Manager()
-    return_list = manager.list()
-    jobs = []
-
-    #pool = multiprocessing.Pool(processes=multiprocessing.cpu_count()/4)
-            
-    start_time=time.time()
-    i=0;
-    
-    all_models_df = pd.DataFrame( columns={"agent_count", "seg_index", "happy","total_moves", "iter", "f0", "f1"})
-    all_model_agents_df = pd.DataFrame( columns={"AgentID","local_composition", "type", "id", "iter", "f0","f1"})
-
-    for f0 in all_f0_f1:
-        p=multiprocessing.Process(target=run_one_simulation, args=(i,f0,return_list ))
-        jobs.append(p)
-        p.start()
-
-     
-        #all_models.append(model_out)
-        i+=1
-    for proc in jobs:
-        proc.join()
-    
-    
-    all_models_df = pd.concat(return_list)
-    print("results",return_list)
 
     all_models_df.index.name = 'Step'
     all_models_df = all_models_df.reset_index().set_index([factor, 'Step'])
@@ -124,8 +109,9 @@ def run_simulation():
 
     filename_pattern = get_filename_pattern()
     all_models_df.to_pickle("dataframes/models_"+ filename_pattern + time.strftime("%Y-%m-%d-%H_%M"))
-    return(all_models_df)
 
+    all_model_agents_df.to_pickle("dataframes/agents_"+ filename_pattern + time.strftime("%Y-%m-%d-%H_%M"))
+    
 
 
 
@@ -188,101 +174,33 @@ factor = "f0"
 
 fs="eq"
 
-for alpha in [0.6,0.01,0.2,0.3,0.4,0.1,0.5]:
+for alpha in [0.3,0.4]:
 
 #for temp in [0.02,0.1,0.5]:
-
-#for density in [0.85,0.9,0.95]:
-#for radius in [7,9,11]:
-
-
-    num_steps=200
-    residential_steps=120;
-    total_steps =residential_steps+num_steps
-    max_steps=total_steps+20
-    
-    for i in range(0,15):
-        all_models_df = run_simulation()
-
-
-    all_models_df.index.name = 'Step'
-    all_models_df = all_models_df.reset_index().set_index([factor, 'Step'])
-    all_model_agents_df.index = pd.MultiIndex.from_tuples(all_model_agents_df.index, names=['Step', 'Id'])
-    all_model_agents_df = all_model_agents_df.reset_index().set_index([factor, 'Step', 'Id'])
-
-
-    filename_pattern = get_filename_pattern()
-    all_models_df.to_pickle("dataframes/models_"+ filename_pattern + time.strftime("%Y-%m-%d-%H_%M"))
-
-
-
-
-    residential_steps =0;
-    total_steps =residential_steps+num_steps
-    max_steps=total_steps+20
-
-    for i in range(0,10):
-        all_models_df = run_simulation()
-
-    all_models_df.index.name = 'Step'
-    all_models_df = all_models_df.reset_index().set_index([factor, 'Step'])
-    all_model_agents_df.index = pd.MultiIndex.from_tuples(all_model_agents_df.index, names=['Step', 'Id'])
-    all_model_agents_df = all_model_agents_df.reset_index().set_index([factor, 'Step', 'Id'])
-
-
-    filename_pattern = get_filename_pattern()
-    all_models_df.to_pickle("dataframes/models_"+ filename_pattern + time.strftime("%Y-%m-%d-%H_%M"))
-
-
-
-
-
-#for alpha in [0.1,0.2,0.3,0.4,0.5]:
-
-#for temp in [0.02,0.1,0.5]:
-for T in [0.65,0.7,0.75,0.8]:
+#for T in [0.65,0.7,0.75]:
 
 ##for density in [0.85,0.9,0.95]:
-#for radius in [7,9,11]:
+#for radius in [3,5,6,7,9,11]:
 
+    processes = []
 
     num_steps=200
     residential_steps=120;
     total_steps =residential_steps+num_steps
     max_steps=total_steps+20
-
     for i in range(0,10):
-        all_models_df = run_simulation()
-
-
-    all_models_df.index.name = 'Step'
-    all_models_df = all_models_df.reset_index().set_index([factor, 'Step'])
-    all_model_agents_df.index = pd.MultiIndex.from_tuples(all_model_agents_df.index, names=['Step', 'Id'])
-    all_model_agents_df = all_model_agents_df.reset_index().set_index([factor, 'Step', 'Id'])
-
-
-    filename_pattern = get_filename_pattern()
-    all_models_df.to_pickle("dataframes/models_"+ filename_pattern + time.strftime("%Y-%m-%d-%H_%M"))
-
-
-
+        p = multiprocessing.Process(target=run_simulation)
+        processes.append(p)
+        p.start()
 
     residential_steps =0;
     total_steps =residential_steps+num_steps
     max_steps=total_steps+20
 
-    for i in range(0,15):
-        all_models_df = run_simulation()
-
-    all_models_df.index.name = 'Step'
-    all_models_df = all_models_df.reset_index().set_index([factor, 'Step'])
-    all_model_agents_df.index = pd.MultiIndex.from_tuples(all_model_agents_df.index, names=['Step', 'Id'])
-    all_model_agents_df = all_model_agents_df.reset_index().set_index([factor, 'Step', 'Id'])
-
-
-    filename_pattern = get_filename_pattern()
-    all_models_df.to_pickle("dataframes/models_"+ filename_pattern + time.strftime("%Y-%m-%d-%H_%M"))
-
-
+    processes = []
+    for i in range(0,10):
+        p=multiprocessing.Process(target=run_simulation)
+        processes.append(p)
+        p.start()                   
 
 

@@ -39,7 +39,7 @@ def segregation_index(model, unit = "school" , radius=1):
         pi_jm = np.zeros(shape=(len(model.households), len(model.household_types)))
         local_compositions = np.zeros(shape=(len(model.households), len(model.household_types)))
 
-        for a_ind, household_agent in enumerate(model.households[1:100]):
+        for a_ind, household_agent in enumerate(model.households):
             local_composition = household_agent.get_local_neighbourhood_composition(position=household_agent.pos,radius=model.radius)
             local_compositions[a_ind][:] = local_composition
             pi_jm[a_ind][:] = local_composition / np.sum(local_composition)
@@ -90,7 +90,7 @@ def calculate_segregation_index(local_compositions, pi_jm, pm):
     pi_jm: proportions in unit j that belongs to group m, shape: (j,m) (schools,groups)
     pm: proportion in group m (m,1)
 
-    tj: total number in group j - dim: (1,j)
+    tj: total number in unit j - dim: (1,j)
 
     :return: information theory index
 

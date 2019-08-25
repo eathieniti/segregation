@@ -272,7 +272,6 @@ class HouseholdAgent(Agent):
 
         else:
             residential_candidates, utilities = self.get_residential_utilities()
-
             index_to_move = self.choose_candidate(U,utilities)
             self.move_residence(residential_candidates[index_to_move])
 
@@ -466,9 +465,9 @@ class SchoolModel(Model):
     def __init__(self, height=100, width=100, density=0.95, num_schools=64,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6,\
                  M0=0.8,M1=0.8,T=0.75,
                  alpha=0.2, temp=0.1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
-                 residential_steps=10,schelling=False,bounded=False,
-                 residential_moves_per_step=2000, school_moves_per_step = 2000,radius=7,proportional = False,
-                 torus=False,fs=0.9):
+                 residential_steps=150,schelling=False,bounded=False,
+                 residential_moves_per_step=2000, school_moves_per_step = 2000,radius=3,proportional = False,
+                 torus=False,fs=0.9, school_pos=None, agents=None):
         '''
         '''
         # Options  for the model
@@ -477,7 +476,6 @@ class SchoolModel(Model):
         print("h x w",height, width)
         self.density = density
         self.num_schools= num_schools
-        self.homophily = homophily
         self.f = [f0,f1]
         self.M = [M0,M1]
         self.fs = fs
@@ -490,6 +488,7 @@ class SchoolModel(Model):
         self.household_types = [0, 1] # majority, minority !!
         self.symmetric_positions = symmetric_positions
         self.schelling=schelling
+        self.school_pos = school_pos
 
 
         # choice parameters
@@ -549,47 +548,72 @@ class SchoolModel(Model):
         # its contents. (coord_iter)
         # Set up schools in symmetric positions along the grid
 
-        if num_schools == 4:
-            school_positions = [(width/4,height/4),(width*3/4,height/4),(width/4,height*3/4),(width*3/4,height*3/4)]
-        elif num_schools == 9:
-            n=6
-            school_positions = [(width/n,height/n),(width*3/n,height*1/n),(width*5/n,height*1/n),(width/n,height*3/n),\
-                                (width*3/n,height*3/n),(width*5/n,height*3/n),(width*1/n,height*5/n),(width*3/n,height*5/n),\
-                                (width*5/n,height*5/n)]
-        elif num_schools == 16:
-            school_positions = []
-            n=8
-            x1 = [1, 3, 5, 7]
 
-            xloc = np.repeat(x1, 4)
-            yloc = np.tile(x1, 4)
 
-            for i in range(len(x1 * 4)):
-                school_positions.append((xloc[i] * height / n, yloc[i] * width / n))
+        # if schools already supplied place them where they should be
 
-        elif num_schools == 64:
-            school_positions = []
-            n=int(np.sqrt(num_schools)*2)
-            print(n)
-            x1 = range(1,int(n+1),2)
+        if self.school_pos:
+            school_positions = self.school_pos
+            self.school_locations = school_pos
+            self.num_schools = len(school_pos)
 
-            xloc = np.repeat(x1, int(n/2))
-            yloc = np.tile(x1, int(n/2))
+        # otherwise calculate the positions
+        else:
+            if self.num_schools == 4:
+                school_positions = [(width/4,height/4),(width*3/4,height/4),(width/4,height*3/4),(width*3/4,height*3/4)]
+            elif self.num_schools == 9:
+                n=6
+                school_positions = [(width/n,height/n),(width*3/n,height*1/n),(width*5/n,height*1/n),(width/n,height*3/n),\
+                                    (width*3/n,height*3/n),(width*5/n,height*3/n),(width*1/n,height*5/n),(width*3/n,height*5/n),\
+                                    (width*5/n,height*5/n)]
+            elif  self.num_schools == 16:
+                school_positions = []
+                n=8
+                x1 = [1, 3, 5, 7]
 
-            for i in range(num_schools):
-                school_positions.append((xloc[i] * height / n, yloc[i] * width / n))
+                xloc = np.repeat(x1, 4)
+                yloc = np.tile(x1, 4)
+
+                for i in range(len(x1 * 4)):
+                    school_positions.append((xloc[i] * height / n, yloc[i] * width / n))
+
+            elif self.num_schools == 64:
+                school_positions = []
+                n=int(np.sqrt( self.num_schools)*2)
+                print(n)
+                x1 = range(1,int(n+1),2)
+
+                xloc = np.repeat(x1, int(n/2))
+                yloc = np.tile(x1, int(n/2))
+
+                for i in range( self.num_schools):
+                    school_positions.append((xloc[i] * height / n, yloc[i] * width / n))
+
+            elif self.num_schools == 25:
+                school_positions = []
+                n=int(np.sqrt( self.num_schools)*2)
+                print(n)
+                x1 = range(1,int(n+1),2)
+
+                xloc = np.repeat(x1, int(n/2))
+                yloc = np.tile(x1, int(n/2))
+
+                for i in range( self.num_schools):
+                    school_positions.append((xloc[i] * height / n, yloc[i] * width / n))
 
 
 
         for i in range(self.num_schools):
             #Add the agent to a random grid cell
-            x = random.randrange(self.grid.width)
-            y = random.randrange(self.grid.height)
 
-            if self.symmetric_positions:
+
+            if self.symmetric_positions or self.school_pos:
                 pos = (int(school_positions[i][0]),int(school_positions[i][1]))
             else:
+                x = random.randrange(self.grid.width)
+                y = random.randrange(self.grid.height)
                 pos = (x,y)
+
             self.school_locations.append(pos)
             school = SchoolAgent(pos, self)
             self.grid.place_agent(school, school.unique_id)
@@ -599,46 +623,65 @@ class SchoolModel(Model):
         # Set up households
 
 
-        # create household locations but dont create agents yet
+        if agents:
 
+            for cell in agents:
+                [agent_type, x, y] = cell
+                if agent_type in [0,1]:
 
-        while len(self.household_locations) < self.num_households:
+                    pos = (x, y)
+                    if self.grid.is_cell_empty(pos):
+                        agent = HouseholdAgent(pos, self, agent_type)
+                        self.grid.place_agent(agent, agent.unique_id)
 
-            #Add the agent to a random grid cell
-            x = random.randrange(self.grid.width)
-            y = random.randrange(self.grid.height)
-            pos = (x,y)
-
-            if (pos not in (self.school_locations) ) and (pos not in self.household_locations):
-                self.household_locations.append(pos)
-
-
-
-
-
-
-        #print(Dij)
-
-        for ind, pos in enumerate(self.household_locations):
-            # create a school or create a household
-
-            if ind < int(self.minority_pc*self.num_households):
-                agent_type = self.household_types[1]
-            else:
-                agent_type = self.household_types[0]
-
-
-            agent = HouseholdAgent(pos, self, agent_type)
-            #decorator_agent = HouseholdAgent(pos, self, agent_type)
-
-            self.grid.place_agent(agent, agent.unique_id)
-
-            #self.grid.place_agent(decorator_agent, pos)
+                        self.household_locations.append(pos)
+                        self.households.append(agent)
+                        self.schedule.add(agent)
 
 
 
-            self.households.append(agent)
-            self.schedule.add(agent)
+        else:
+
+            # create household locations but dont create agents yet
+
+            while len(self.household_locations) < self.num_households:
+
+                #Add the agent to a random grid cell
+                x = random.randrange(self.grid.width)
+                y = random.randrange(self.grid.height)
+                pos = (x,y)
+
+                if (pos not in (self.school_locations) ) and (pos not in self.household_locations):
+                    self.household_locations.append(pos)
+
+
+
+            #print(Dij)
+
+            for ind, pos in enumerate(self.household_locations):
+
+                # create a school or create a household
+
+                if ind < int(self.minority_pc*self.num_households):
+                    agent_type = self.household_types[1]
+                else:
+                    agent_type = self.household_types[0]
+
+
+                agent = HouseholdAgent(pos, self, agent_type)
+                #decorator_agent = HouseholdAgent(pos, self, agent_type)
+
+                self.grid.place_agent(agent, agent.unique_id)
+
+                #self.grid.place_agent(decorator_agent, pos)
+
+
+
+                self.households.append(agent)
+                self.schedule.add(agent)
+
+
+
 
 
         self.calculate_all_distances()
@@ -647,7 +690,6 @@ class SchoolModel(Model):
             random_school_index = random.randint(0, len(self.schools)-1)
             candidate_school = self.schools[random_school_index]
             agent.allocate(candidate_school,agent.Dj[random_school_index])
-
 
 
 
@@ -676,13 +718,17 @@ class SchoolModel(Model):
                              "res_satisfaction": "res_satisfaction","satisfaction":"satisfaction",
                              "res_happy":"res_happy"},
             agent_reporters={"local_composition": "local_composition", "type": lambda a: a.type,
-                             "id": lambda a: a.unique_id, "fixed_local_composition": "fixed_local_composition","variable_local_composition": "variable_local_composition"})
+                             "id": lambda a: a.unique_id,
+                             #"fixed_local_composition": "fixed_local_composition",
+                             #"variable_local_composition": "variable_local_composition",
+                             "pos":"pos"})
+
 
 
         # Calculate local composition
         # set size
         for school in self.schools:
-            school.get_local_school_composition()
+            #school.get_local_school_composition()
             #cap = round(np.random.normal(loc=cap_max * self.avg_school_size, scale=self.avg_school_size * 0.05))
             cap = self.avg_school_size * self.cap_max
 
@@ -690,10 +736,10 @@ class SchoolModel(Model):
             segregation_index(self)
         #
 
-        print("height = %d; width = %d; density = %.2f; num_schools = %d; minority_pc =  %.2f; homophily = %d; "
+        print("height = %d; width = %d; density = %.2f; num_schools = %d; minority_pc =  %.2f; "
               "f0 =  %.2f; f1 =  %.2f; M0 =  %.2f; M1 =  %.2f;\
         alpha =  %.2f; temp =  %.2f; cap_max =  %.2f; move = %s; symmetric_positions = %s"%(height,
-         width, density, num_schools,minority_pc,homophily,f0,f1, M0,M1,alpha,
+         width, density, num_schools,minority_pc,f0,f1, M0,M1,alpha,
                                        temp, cap_max, move, symmetric_positions ))
 
         self.total_considered = 0
@@ -810,7 +856,12 @@ class SchoolModel(Model):
             self.running = False
 
 
+
+
+
         compositions = []
+
+        # remove this?
         for school in self.schools:
             self.my_collector.append([self.schedule.steps, school.unique_id, school.get_local_school_composition()])
             self.compositions = school.get_local_school_composition()
@@ -823,8 +874,11 @@ class SchoolModel(Model):
         #print("comps",compositions,np.sum(compositions) )
         [self.comp0,self.comp1,self.comp2,self.comp3,self.comp4,self.comp5,self.comp6,self.comp7] = compositions[0:8]
         # collect data
+        #
         self.datacollector.collect(self)
         print("moves",self.total_moves, "res_moves", self.res_moves, "percent_happy", self.percent_happy)
+
+
 
 
 

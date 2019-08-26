@@ -90,7 +90,7 @@ def calculate_segregation_index(local_compositions, pi_jm, pm):
     pi_jm: proportions in unit j that belongs to group m, shape: (j,m) (schools,groups)
     pm: proportion in group m (m,1)
 
-    tj: total number in group j - dim: (1,j)
+    tj: total number in unit j - dim: (1,j)
 
     :return: information theory index
 

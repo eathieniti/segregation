@@ -576,7 +576,6 @@ class SchoolModel(Model):
         elif num_schools == 64:
             school_positions = []
             n=int(np.sqrt(num_schools)*2)
-            print(n)
             x1 = range(1,int(n+1),2)
 
             xloc = np.repeat(x1, int(n/2))

@@ -25,8 +25,8 @@ class SchoolModel(Model):
 
     def __init__(self, height=100, width=100, density=0.95, num_schools=64,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6,\
                  M0=0.8,M1=0.8,T=0.75,
-                 alpha=0.2, temp=0.1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
-                 residential_steps=0,schelling=False,bounded=False,
+                 alpha=0.2, temp=20, cap_max=1.01, move="boltzmann", symmetric_positions=True,
+                 residential_steps=100,schelling=False,bounded=True,
                  residential_moves_per_step=2000, school_moves_per_step = 2000,radius=3,proportional = False,
                  torus=False,fs=0.9, extended_data = False, school_pos=None, agents=None, sample=5 ):
         '''
@@ -51,6 +51,8 @@ class SchoolModel(Model):
         self.school_pos = school_pos
         self.extended_data = extended_data
         self.sample = sample
+
+
 
         if fs!="eq":
             self.fs = fs
@@ -81,6 +83,8 @@ class SchoolModel(Model):
         self.school_locations = []
         self.household_locations = []
         self.Dij = []
+        self.closer_school_from_position = np.empty([self.grid.width, self.grid.height])
+
 
 
         self.happy = 0
@@ -251,6 +255,7 @@ class SchoolModel(Model):
 
 
         self.calculate_all_distances()
+        self.set_positions_to_school()
 
         for agent in self.households:
             random_school_index = random.randint(0, len(self.schools)-1)
@@ -359,6 +364,53 @@ class SchoolModel(Model):
         return(Dij)
 
 
+    def set_positions_to_school(self):
+        '''
+        calculate closer school from every position on the grid
+        Euclidean or gis shortest road route
+        :return: dist
+        '''
+        distance_dict = {}
+        # Add the agent to a random grid cell
+
+        all_grid_locations = []
+
+        for x in range(self.grid.width):
+            for y in range(self.grid.height):
+                all_grid_locations.append( (x,y) )
+
+
+        Dij = distance.cdist(np.array(all_grid_locations), np.array(self.school_locations), 'euclidean')
+
+        for i, pos in enumerate(all_grid_locations):
+            Dj = Dij[i, :]
+            (x,y) = pos
+            # Calculate distances of the schools - define the school-neighbourhood and compare
+            # closer_school = household.schools[np.argmin(household.)]
+            closer_school_index = np.argmin(Dj)
+            self.closer_school_from_position[x][y] = closer_school_index
+
+        print("closer_school_by_position",self.closer_school_from_position)
+
+
+    def get_closer_school_from_position(self, pos):
+
+        (x,y) = pos
+        school_index = self.closer_school_from_position[x][y]
+        school = self.get_school_from_index(school_index)
+
+        return(school)
+
+
+    def get_school_from_index(self, school_index):
+        """
+
+        :param self:
+        :param school_index:
+        :return:
+        """
+
+        return(self.schools[int(school_index)])
 
 
     def step(self):
@@ -400,7 +452,6 @@ class SchoolModel(Model):
             self.household_locations = []
             for i, household in enumerate(self.households):
                 self.household_locations.append(household.pos)
-                household.residential_utilities = []
 
 
             self.calculate_all_distances()
@@ -434,8 +485,6 @@ class SchoolModel(Model):
             self.seg_index = segregation_index(self)
             satisfaction = np.mean(self.satisfaction)
 
-        for i, household in enumerate(self.households):
-            household.school_utilities = []
 
 
         print("seg_index", "%.2f"%(self.seg_index), "var_res_seg", "%.2f"%(self.res_seg_index), "neighbourhood",
@@ -462,6 +511,7 @@ class SchoolModel(Model):
 
             self.compositions1 = int(school.get_local_school_composition()[1])
             self.compositions0 = int(school.get_local_school_composition()[0])
+            #print("school_students",school.neighbourhood_students)
 
         #print("comps",compositions,np.sum(compositions) )
         [self.comp0,self.comp1,self.comp2,self.comp3,self.comp4,self.comp5,self.comp6,self.comp7] = compositions[0:8]
@@ -469,6 +519,13 @@ class SchoolModel(Model):
         #
         self.datacollector.collect(self)
         print("moves",self.total_moves, "res_moves", self.res_moves, "percent_happy", self.percent_happy)
+
+        for i, household in enumerate(self.households):
+            household.school_utilities = []
+            household.residential_utilities = []
+
+
+
 
 
 

@@ -53,9 +53,14 @@ class SchoolAgent(Agent):
 
     def get_local_neighbourhood_composition(self):
 
-        # get the composition of the students in the neighbourhood
+        """
+        get the composition of the students in the neighbourhood
+
+        :return: [number of type 0, number of type 1]
+        """
 
         local_neighbourhood_composition = get_counts_util(self.neighbourhood_students, self.model)
+        #print("step ",self.model.schedule.steps," neighb students ",len(self.neighbourhood_students))
 
         return (local_neighbourhood_composition)
 
@@ -215,7 +220,16 @@ class HouseholdAgent(Agent):
         y = 0 # unlike neighbours
 
         if bounded:
-            x, y = self.get_closer_school().get_local_neighbourhood_composition()
+            composition = self.model.get_closer_school_from_position(position).get_local_neighbourhood_composition()
+            #print("school comp ", composition)
+            for type in [0,1]:
+                if type == self.type:
+                    x = composition[type]
+                else:
+                    y = composition[type]
+
+
+
 
         else:
 
@@ -250,6 +264,7 @@ class HouseholdAgent(Agent):
 
         local_composition = get_counts_util(neighbours, self.model)
 
+
         return (local_composition)
 
 
@@ -269,13 +284,16 @@ class HouseholdAgent(Agent):
             index_to_move = self.choose_candidate(U,utilities)
             self.move_school(index_to_move, self.model.schools[index_to_move])
             self.school_utilities = utilities
+
             #print("utilities",utilities)
 
         else:
             residential_candidates, utilities = self.get_residential_utilities()
             index_to_move = self.choose_candidate(U,utilities)
-            self.move_residence(residential_candidates[index_to_move])
+            self.move_residence(residential_candidates[index_to_move], bounded=self.model.bounded)
             self.residential_utilities = utilities
+            #print("utilities",utilities)
+
 
 
 
@@ -356,11 +374,13 @@ class HouseholdAgent(Agent):
 
                 # TODO: empty site find the closer school
                 U_res_candidate = self.get_res_satisfaction(e)
+                #print("cand,util",e, U_res_candidate)
                 utilities.append(U_res_candidate)
                 candidates.append(e)
 
         # also add the current position
         candidates.append(self.pos)
+
         utilities.append(self.get_res_satisfaction(self.pos))
         return candidates, utilities
 
@@ -395,15 +415,35 @@ class HouseholdAgent(Agent):
 
 
 
-    def move_residence(self, new_position):
-        self.model.grid.move_agent(self, new_position)
-
-        self.model.res_moves += 1
+    def move_residence(self, new_position, bounded=False):
+        """
 
 
+        :param new_position: (x,y) location to move to
+        :return: None
+        """
+
+        if bounded:
+
+            self.closer_school.neighbourhood_students.remove(self)
+
+            self.model.grid.move_agent(self, new_position)
+
+            new_school = self.model.get_closer_school_from_position(new_position)
+
+            new_school.neighbourhood_students.append(self)
 
 
-    #@property
+            self.model.res_moves += 1
+
+        else:
+
+            self.model.grid.move_agent(self, new_position)
+
+            self.model.res_moves += 1
+
+
+
     def get_school_satisfaction(self, school, dist):
         # x: local number of agents of own group in the school or neighbourhood
         # p: total number of agents in the school or neighbourhood

@@ -109,11 +109,11 @@ class SchoolModel(Model):
 
 
     def __init__(self, height=100, width=100, density=0.9, num_schools=64,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6,\
-                 M0=0.8,M1=0.8,T=0.65,
-                 alpha=0.2, temp=1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
-                 residential_steps=100,schelling=False,bounded=True,
+                 M0=0.8,M1=0.8,T=0.85,
+                 alpha=0.5, temp=1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
+                 residential_steps=50,schelling=False,bounded=True,
                  residential_moves_per_step=2000, school_moves_per_step = 2000,radius=6,proportional = False,
-                 torus=False,fs=0.9, extended_data = False, school_pos=None, agents=None, sample=5, variable_f=True, sigma=0.5 ):
+                 torus=False,fs="eq", extended_data = False, school_pos=None, agents=None, sample=5, variable_f=True, sigma=0.5 ):
         '''
         '''
         # Options  for the model

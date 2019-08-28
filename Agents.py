@@ -96,7 +96,7 @@ class HouseholdAgent(Agent):
         if model.fs != "eq":
             self.fs = np.random.normal(model.fs, model.sigma)
         else:
-            self.fs = f0
+            self.fs = self.f
 
         self.M = model.M[agent_type]
 

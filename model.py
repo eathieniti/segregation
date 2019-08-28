@@ -19,16 +19,101 @@ print("mesa",mesa.__file__)
 
 
 class SchoolModel(Model):
-    '''
-    Model class for the Schelling segregation model.
-    '''
 
-    def __init__(self, height=100, width=100, density=0.95, num_schools=64,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6,\
-                 M0=0.8,M1=0.8,T=0.75,
-                 alpha=0.2, temp=20, cap_max=1.01, move="boltzmann", symmetric_positions=True,
+
+    """
+    Model class for the Schelling segregation model.
+
+    ...
+
+    Attributes
+    ----------
+
+    height: int
+        grid height
+    width: int
+        grid width
+    num_schools:  int
+        number of schools
+    f : float
+        fraction preference of agents for like
+    M : float
+        utility penalty for homogeneous neighbourhood
+    residential_steps :
+        number of steps for the residential model
+    minority_pc :
+        minority fraction
+    bounded : boolean
+        If True use bounded (predefined neighbourhood) for agents residential choice
+    cap_max : float
+        school capacity TODO: explain
+    radius : int
+        neighbourhood radius for agents calculation of residential choice (only used if not bounded)
+    household_types :
+        labels for different ethnic types of households
+    symmetric_positions :
+        use symmetric positions for the schools along the grid, or random
+    schelling :
+        if True use schelling utility function otherwise use assymetric
+    school_pos :
+        if supplied place schools in the supplied positions - also update school_num
+    extended_data :
+        if True collect extra data for agents (utility distribution and satisfaction)
+        takes up a lot of space
+    sample : int
+        subsample the empty residential sites to be evaluated to speed up computation
+    variable_f : variable_f
+        draw values of the ethnic preference, f from a normal distribution
+    sigma : float
+        The standard deviation of the normal distribution used for f
+
+    alpha :
+        ratio of ethnic to distance to school preference for school utility
+    temp :
+        temperature for the behavioural logit rule for agents moving
+
+
+    households :
+
+    schools :
+
+    residential_moves_per_step :
+
+    school_moves_per_step :
+
+    num_households :
+
+    in_households :
+
+    pm :
+
+    schedule :
+
+    grid :
+
+    total_moves :
+
+    res_moves :
+
+    move :
+
+    school_locations :
+
+    household_locations :
+
+    Dij :
+
+    closer_school_from_position :
+
+    """
+
+
+    def __init__(self, height=100, width=100, density=0.9, num_schools=64,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6,\
+                 M0=0.8,M1=0.8,T=0.65,
+                 alpha=0.2, temp=1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
                  residential_steps=100,schelling=False,bounded=True,
-                 residential_moves_per_step=2000, school_moves_per_step = 2000,radius=3,proportional = False,
-                 torus=False,fs=0.9, extended_data = False, school_pos=None, agents=None, sample=5 ):
+                 residential_moves_per_step=2000, school_moves_per_step = 2000,radius=6,proportional = False,
+                 torus=False,fs=0.9, extended_data = False, school_pos=None, agents=None, sample=5, variable_f=True, sigma=0.5 ):
         '''
         '''
         # Options  for the model
@@ -51,13 +136,10 @@ class SchoolModel(Model):
         self.school_pos = school_pos
         self.extended_data = extended_data
         self.sample = sample
+        self.variable_f = variable_f
+        self.sigma = sigma
+        self.fs = fs
 
-
-
-        if fs!="eq":
-            self.fs = fs
-        else:
-            self.fs = f0
 
         # choice parameters
         self.alpha = alpha
@@ -179,6 +261,8 @@ class SchoolModel(Model):
 
             if self.symmetric_positions or self.school_pos:
                 pos = (int(school_positions[i][0]),int(school_positions[i][1]))
+                print("pos", pos)
+
             else:
                 x = random.randrange(self.grid.width)
                 y = random.randrange(self.grid.height)

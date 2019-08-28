@@ -68,8 +68,6 @@ class SchoolAgent(Agent):
 
 
 
-
-
 class HouseholdAgent(Agent):
     '''
     Schelling segregation agent
@@ -85,9 +83,26 @@ class HouseholdAgent(Agent):
         '''
         super().__init__(pos, model)
         self.type = agent_type
-        self.f = model.f[agent_type]
+
+
+        # draw a value for f from a normal distribution
+        if self.model.variable_f:
+            self.f = np.random.normal(model.f[agent_type], model.sigma)
+        else:
+            self.f = model.f[agent_type]
+
+
+        # TODO: extend fs to allow different numbers for different agent types
+        if model.fs != "eq":
+            self.fs = np.random.normal(model.fs, model.sigma)
+        else:
+            self.fs = f0
+
         self.M = model.M[agent_type]
-        self.fs = model.fs
+
+
+
+
         self.T = model.T
         self.children = 1
         self.school = None
@@ -103,6 +118,8 @@ class HouseholdAgent(Agent):
         self.schelling = self.model.schelling
         self.school_utilities = []
         self.residential_utilities = []
+
+
 
 
     # def calculate_distances(self):

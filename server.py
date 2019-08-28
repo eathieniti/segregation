@@ -11,8 +11,8 @@ from mesa.visualization.TextVisualization import (
 )
 
 from model import SchoolModel
-height = 54
-width = 54
+height = 100
+width = 100
 color_by_school  = False
 add_schools = False
 class SchellingTextVisualization(TextVisualization):
@@ -176,6 +176,10 @@ happy_chart = ChartModule([{"Label": "percent_happy", "Color": "Black"}])
 seg_chart = ChartModule([{"Label": "seg_index", "Color": "Black"}],canvas_height=200, canvas_width=600, )
 res_seg_chart = ChartModule([{"Label": "res_seg_index", "Color": "Black"}],canvas_height=200, canvas_width=600, )
 neighbourhood_seg_chart = ChartModule([{"Label": "residential_segregation", "Color": "Black"}],canvas_height=200, canvas_width=600, )
+res_satisfaction_chart = ChartModule([{"Label": "res_satisfaction", "Color": "Black"}],canvas_height=200, canvas_width=600, )
+satisfaction_chart = ChartModule([{"Label": "satisfaction", "Color": "Black"}],canvas_height=200, canvas_width=600, )
+
+
 
 histogram = HistogramModule(list(range(10)), 200, 500)
 
@@ -183,19 +187,19 @@ histogram = HistogramModule(list(range(10)), 200, 500)
 model_params = {
     "height": height,
     "width": width,
-    "density": UserSettableParameter("slider", "Agent density", 0.99, 0.1, 1.0, 0.01),
+    "density": UserSettableParameter("slider", "Agent density", 0.90, 0.1, 1.0, 0.01),
     "minority_pc": UserSettableParameter("slider", "Fraction minority", 0.5, 0.00, 1.0, 0.05),
-    "f0": UserSettableParameter("slider", "f0", 0.7, 0.1,0.9,0.1),
-    "f1": UserSettableParameter("slider", "f1",0.7, 0.1, 0.9, 0.1),
+    "f0": UserSettableParameter("slider", "f0", 0.70, 0.1,0.9,0.05),
+    "f1": UserSettableParameter("slider", "f1",0.70, 0.1, 0.9, 0.05),
     "M0": UserSettableParameter("slider", "M0", 0.8, 0.1, 1, 0.1),
     "M1": UserSettableParameter("slider", "M1", 0.8, 0.1, 1, 0.1),
-    "cap_max": UserSettableParameter("slider", "max capacity", 2, 1.0, 5, 0.1),
+    "cap_max": UserSettableParameter("slider", "max capacity", 1.01, 1.0, 5, 0.1),
     "alpha": UserSettableParameter("slider", "alpha", 0.2, 0.0, 1.0, 0.1),
     "temp": UserSettableParameter("slider", "temp", 0.1, 0.0, 0.9, 0.1)
 }
 
 server = ModularServer(SchoolModel,
                        [canvas_element, compositions_chart, seg_chart, happy_chart,
-                        res_seg_chart,neighbourhood_seg_chart],
+                        res_seg_chart,neighbourhood_seg_chart, res_satisfaction_chart, satisfaction_chart],
                        "SchoolModel", model_params)
 server.launch()

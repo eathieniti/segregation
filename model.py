@@ -66,44 +66,36 @@ class SchoolModel(Model):
         draw values of the ethnic preference, f from a normal distribution
     sigma : float
         The standard deviation of the normal distribution used for f
-
-    alpha :
+    alpha : float
         ratio of ethnic to distance to school preference for school utility
-    temp :
+    temp : float
         temperature for the behavioural logit rule for agents moving
-
-
-    households :
-
-    schools :
-
-    residential_moves_per_step :
-
-    school_moves_per_step :
-
-    num_households :
-
-    in_households :
-
-    pm :
-
-    schedule :
-
-    grid :
-
+    households : list
+        all household objects
+    schools : list
+        all school objects
+    residential_moves_per_step : int
+        number of agents to move residence at every step
+    school_moves_per_step : int
+        number of agents to move school at every step
+    num_households : int
+        total number of household agents
+    pm : list [ , ]
+        number of majority households, number of minority households
+    schedule : mesa schedule type
+    grid : mesa grid type
     total_moves :
-
+        number of school moves made in particular step
     res_moves :
-
+        number of residential site moves made in particular step
     move :
-
-    school_locations :
-
+        type of move recipe - 'random' 'boltzmann' or 'deterministic'
+    school_locations : list
+       list of locations of all schools (x,y)
     household_locations :
-
-    Dij :
-
-    closer_school_from_position :
+       list of locations of all households (x,y)
+    closer_school_from_position : numpy array shape : (width x height)
+        map of every grid position to the closest school
 
     """
 
@@ -114,8 +106,8 @@ class SchoolModel(Model):
                  residential_steps=50,schelling=False,bounded=True,
                  residential_moves_per_step=2000, school_moves_per_step = 2000,radius=6,proportional = False,
                  torus=False,fs="eq", extended_data = False, school_pos=None, agents=None, sample=5, variable_f=True, sigma=0.5 ):
-        '''
-        '''
+
+
         # Options  for the model
         self.height = height
         self.width = width
@@ -164,7 +156,6 @@ class SchoolModel(Model):
 
         self.school_locations = []
         self.household_locations = []
-        self.Dij = []
         self.closer_school_from_position = np.empty([self.grid.width, self.grid.height])
 
 
@@ -218,30 +209,8 @@ class SchoolModel(Model):
                 school_positions = [(width/n,height/n),(width*3/n,height*1/n),(width*5/n,height*1/n),(width/n,height*3/n),\
                                     (width*3/n,height*3/n),(width*5/n,height*3/n),(width*1/n,height*5/n),(width*3/n,height*5/n),\
                                     (width*5/n,height*5/n)]
-            elif  self.num_schools == 16:
-                school_positions = []
-                n=8
-                x1 = [1, 3, 5, 7]
 
-                xloc = np.repeat(x1, 4)
-                yloc = np.tile(x1, 4)
-
-                for i in range(len(x1 * 4)):
-                    school_positions.append((xloc[i] * height / n, yloc[i] * width / n))
-
-            elif self.num_schools == 64:
-                school_positions = []
-                n=int(np.sqrt( self.num_schools)*2)
-                print(n)
-                x1 = range(1,int(n+1),2)
-
-                xloc = np.repeat(x1, int(n/2))
-                yloc = np.tile(x1, int(n/2))
-
-                for i in range( self.num_schools):
-                    school_positions.append((xloc[i] * height / n, yloc[i] * width / n))
-
-            elif self.num_schools == 25:
+            elif self.num_schools in [25, 64, 16]:
                 school_positions = []
                 n=int(np.sqrt( self.num_schools)*2)
                 print(n)
@@ -276,7 +245,7 @@ class SchoolModel(Model):
 
         # Set up households
 
-
+        # If agents are supplied place them where they need to be
         if agents:
 
             for cell in agents:
@@ -293,7 +262,7 @@ class SchoolModel(Model):
                         self.schedule.add(agent)
 
 
-
+        # otherwise produce them
         else:
 
             # create household locations but dont create agents yet
@@ -427,11 +396,13 @@ class SchoolModel(Model):
 
 
     def calculate_all_distances(self):
-        '''
+        """
+
         calculate distance between school and household
         Euclidean or gis shortest road route
         :return: dist
-        '''
+
+        """
 
         Dij = distance.cdist(np.array(self.household_locations), np.array(self.school_locations), 'euclidean')
 
@@ -478,20 +449,22 @@ class SchoolModel(Model):
 
 
     def get_closer_school_from_position(self, pos):
-
-        (x,y) = pos
+        """
+        :param pos: (x,y) position
+        :return school: school object closest to this position
+        """
+        (x, y) = pos
         school_index = self.closer_school_from_position[x][y]
         school = self.get_school_from_index(school_index)
 
-        return(school)
+        return (school)
 
 
     def get_school_from_index(self, school_index):
         """
-
-        :param self:
+        :param self: obtain the school object using the index
         :param school_index:
-        :return:
+        :return: school object
         """
 
         return(self.schools[int(school_index)])
@@ -517,11 +490,7 @@ class SchoolModel(Model):
         print("total_considered", self.total_considered)
 
 
-
-
         # Once residential steps are done calculate school distances
-
-
 
         if self.schedule.steps <= self.residential_steps or self.schedule.steps ==1 :
             # during the residential steps keep recalculating the school neighbourhood compositions

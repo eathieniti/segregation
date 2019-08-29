@@ -101,11 +101,11 @@ class SchoolModel(Model):
 
 
     def __init__(self, height=100, width=100, density=0.9, num_schools=64,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6,\
-                 M0=0.8,M1=0.8,T=0.70,
-                 alpha=0.5, temp=1, cap_max=1.5, move="boltzmann", symmetric_positions=False,
+                 M0=0.8,M1=0.8,T=0.65,
+                 alpha=0.5, temp=1, cap_max=1.01, move="boltzmann", symmetric_positions=False,
                  residential_steps=50,schelling=False,bounded=True,
                  residential_moves_per_step=2000, school_moves_per_step = 2000,radius=6,proportional = False,
-                 torus=False,fs="eq", extended_data = False, school_pos=None, agents=None, sample=0, variable_f=True, sigma=0.5 ):
+                 torus=False,fs="eq", extended_data = False, school_pos=None, agents=None, sample=5, variable_f=True, sigma=0.5 ):
 
 
         # Options  for the model
@@ -131,8 +131,6 @@ class SchoolModel(Model):
         self.variable_f = variable_f
         self.sigma = sigma
         self.fs = fs
-        self.residential_moves_per_step = residential_moves_per_step
-        self.school_moves_per_step = school_moves_per_step
 
 
         # choice parameters
@@ -141,6 +139,8 @@ class SchoolModel(Model):
 
         self.households = []
         self.schools = []
+        self.residential_moves_per_step = residential_moves_per_step
+        self.school_moves_per_step = school_moves_per_step
 
 
         self.num_households = int(width*height*density)
@@ -224,29 +224,24 @@ class SchoolModel(Model):
 
 
 
-        #for i in range(self.num_schools):
-        while len(self.schools)<self.num_schools:
+        for i in range(self.num_schools):
+            #Add the agent to a random grid cell
 
 
             if self.symmetric_positions or self.school_pos:
                 pos = (int(school_positions[i][0]),int(school_positions[i][1]))
-                #print("pos", pos)
+                print("pos", pos)
 
             else:
-                # Add the agent to a random grid cell
                 x = random.randrange(self.grid.width)
                 y = random.randrange(self.grid.height)
                 pos = (x,y)
 
-            # ensure that position is not already occupied
-            if pos not in self.school_locations:
-                self.school_locations.append(pos)
-                school = SchoolAgent(pos, self)
-                self.grid.place_agent(school, school.unique_id)
-                self.schools.append(school)
-                self.schedule.add(school)
-            else:
-                print("Location ", pos , " already used" )
+            self.school_locations.append(pos)
+            school = SchoolAgent(pos, self)
+            self.grid.place_agent(school, school.unique_id)
+            self.schools.append(school)
+            self.schedule.add(school)
 
         # Set up households
 
@@ -383,7 +378,7 @@ class SchoolModel(Model):
             #cap = round(np.random.normal(loc=cap_max * self.avg_school_size, scale=self.avg_school_size * 0.05))
             cap = self.avg_school_size * self.cap_max
             school.capacity = cap
-            #print("cap",self.avg_school_size, cap)
+            print("cap",self.avg_school_size, cap)
             segregation_index(self)
         #
 

@@ -105,7 +105,7 @@ class SchoolModel(Model):
                  alpha=0.5, temp=1, cap_max=1.5, move="boltzmann", symmetric_positions=False,
                  residential_steps=50,schelling=False,bounded=True,
                  residential_moves_per_step=2000, school_moves_per_step = 2000,radius=6,proportional = False,
-                 torus=False,fs="eq", extended_data = False, school_pos=None, agents=None, sample=0, variable_f=True, sigma=0.5 ):
+                 torus=False,fs="eq", extended_data = False, school_pos=None, agents=None, sample=1, variable_f=True, sigma=0.5 ):
 
 
         # Options  for the model

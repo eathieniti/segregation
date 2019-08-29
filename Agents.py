@@ -355,8 +355,9 @@ class HouseholdAgent(Agent):
         for school_index, candidate_school in enumerate(self.model.schools):
             # check whether school is eligible to move to
             # if candidate_school.current_capacity <= (candidate_school.capacity + 10) and candidate_school!=self.school:
-            #print(candidate_school.current_capacity,candidate_school.capacity )
+            # print(candidate_school.current_capacity,candidate_school.capacity )
             if candidate_school.current_capacity <= (candidate_school.capacity):
+
                 U_candidate = self.get_school_satisfaction(candidate_school, dist=self.Dj[school_index])
                 utilities.append(U_candidate)
 
@@ -443,8 +444,9 @@ class HouseholdAgent(Agent):
 
         if bounded:
 
-            self.closer_school.neighbourhood_students.remove(self)
+            self.model.get_closer_school_from_position(self.pos).neighbourhood_students.remove(self)
 
+            #if(self.get_closer_school_from_position(self.pos) == self.get_closer_school())
             self.model.grid.move_agent(self, new_position)
 
             new_school = self.model.get_closer_school_from_position(new_position)

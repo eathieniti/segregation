@@ -100,12 +100,12 @@ class SchoolModel(Model):
     """
 
 
-    def __init__(self, height=100, width=100, density=0.9, num_schools=64,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6,\
+    def __init__(self, height=100, width=100, density=0.9, num_schools=88,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6,\
                  M0=0.8,M1=0.8,T=0.65,
                  alpha=0.5, temp=1, cap_max=1.01, move="boltzmann", symmetric_positions=False,
-                 residential_steps=50,schelling=False,bounded=True,
+                 residential_steps=0,schelling=False,bounded=True,
                  residential_moves_per_step=2000, school_moves_per_step =2000,radius=6,proportional = False,
-                 torus=False,fs="eq", extended_data = False, school_pos=None, agents=None, sample=5, variable_f=True, sigma=0.5 ):
+                 torus=False,fs="eq", extended_data = False, school_pos=None, agents=None, sample=7, variable_f=True, sigma=0.5 ):
 
 
         # Options  for the model
@@ -233,17 +233,16 @@ class SchoolModel(Model):
             if self.symmetric_positions or self.school_pos:
                 x = int(school_positions[i][0])
                 y = int(school_positions[i][1])
-                print("pos", pos)
 
             else:
-                x = random.randrange(self.grid.width-4)
-                y = random.randrange(self.grid.height-4)
-
+                x = random.randrange(start=3,stop=self.grid.width-3)
+                y = random.randrange(start=3,stop=self.grid.height-3)
 
             pos = (x,y)
-            pos2 = (x+3,y+3)
-            if (pos2 not in self.school_locations)  and (pos not in self.neighbourhood_locations)\
-                   and (pos not in self.school_locations)  and (pos2 not in self.neighbourhood_locations):
+            pos2 = (x+2,y+2)
+            pos3 = (x-1,y-2)
+            do_not_use = self.school_locations + self.neighbourhood_locations
+            if (pos2 not in do_not_use) and (pos2 not in do_not_use ) and (pos3 not in do_not_use ):
 
                 self.school_locations.append(pos2)
                 school = SchoolAgent(pos2, self)
@@ -251,6 +250,12 @@ class SchoolModel(Model):
                 self.schools.append(school)
                 self.schedule.add(school)
 
+                # Add another school
+                self.school_locations.append(pos3)
+                school = SchoolAgent(pos3, self)
+                self.grid.place_agent(school, school.unique_id)
+                self.schools.append(school)
+                self.schedule.add(school)
 
 
                 self.neighbourhood_locations.append(pos)
@@ -258,9 +263,12 @@ class SchoolModel(Model):
                 self.grid.place_agent(neighbourhood, neighbourhood.unique_id)
                 self.neighbourhoods.append(neighbourhood)
                 self.schedule.add(neighbourhood)
+        #print("num_schools",self.num_schools)
 
-        print(self.neighbourhood_locations)
-        print("schools",self.school_locations)
+
+
+        #print(self.neighbourhood_locations)
+        #print("schools",self.school_locations, len(self.school_locations))
         # Set up households
 
         # If agents are supplied place them where they need to be
@@ -292,8 +300,7 @@ class SchoolModel(Model):
                 y = random.randrange(self.grid.height)
                 pos = (x,y)
 
-                if (pos not in self.school_locations ) and (pos not in self.household_locations)\
-                        and (pos not in self.neighbourhood_locations):
+                if (pos not in (self.school_locations +  self.household_locations + self.neighbourhood_locations)):
                     self.household_locations.append(pos)
 
 
@@ -329,7 +336,10 @@ class SchoolModel(Model):
 
 
         for agent in self.households:
+
             random_school_index = random.randint(0, len(self.schools)-1)
+            #print("school_index", random_school_index, agent.Dj, len(agent.Dj))
+
             candidate_school = self.schools[random_school_index]
             agent.allocate(candidate_school,agent.Dj[random_school_index])
 
@@ -423,7 +433,7 @@ class SchoolModel(Model):
 
         """
 
-        Dij = distance.cdist(np.array(self.household_locations), np.array(self.neighbourhood_locations), 'euclidean')
+        Dij = distance.cdist(np.array(self.household_locations), np.array(self.school_locations), 'euclidean')
 
         for household_index, household in enumerate(self.households):
             Dj = Dij[household_index,:]

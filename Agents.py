@@ -14,10 +14,33 @@ from util import segregation_index, calculate_segregation_index, dissimilarity_i
 print("mesa",mesa.__file__)
 
 
-class SchoolAgent(Agent):
-    '''
 
-    '''
+
+class SchoolAgent(Agent):
+    """
+     A class used to represent the Schools
+
+     ...
+
+     Attributes
+     ----------
+     students : list of HouseholdAgent objects
+        list of students assigned to the school (TODO: probably saves memory to only hold student ids..)
+     type : int
+        only one type of schools, used to differentiate from households, type = 2
+     pos : (x,y)
+        (x,y) location of the school on the grid
+
+
+    local_composition : list [ , ]
+        [number of type 0 agents, number of type 1 agents]
+    # TODO: households for now: change to students
+    capacity : int
+        current school capacity
+    neighbourhood_students : list of HouseholdAgent objects
+        list of HouseholdAgents that have residence in the school neighbourhood
+
+    """
     def __init__(self, pos, model):
 
         super().__init__(pos, model)
@@ -25,21 +48,30 @@ class SchoolAgent(Agent):
         self.students = []
         self.type = 2
         self.pos = pos
-
+        self.centre = pos
 
 
         # measures
         self.local_composition = [0,0]
         # TODO: households for now: change to students
         self.capacity = 0
+        # TODO: make this indexes
         self.neighbourhood_students = []
 
     def step(self):
         pass
 
 
-    def get_local_school_composition(self):
 
+    def get_local_school_composition(self):
+        """
+        Gets composition of the school, number of agents allocated to the school for each type
+        Sets the local composition attribute
+        Sets the current capacity
+        TODO: probably not needed to calculate and update every time this is called
+
+        :return: local composition [number of type 0 agents, number of type 1 agents]
+        """
         # get the composition of the students in the neighbourhood
 
         local_composition = get_counts_util(students=self.students, model=self.model)
@@ -66,21 +98,140 @@ class SchoolAgent(Agent):
 
 
 
+class NeighbourhoodAgent(Agent):
+    """
+     A class used to represent the Schools
+
+     ...
+
+     Attributes
+     ----------
+     students : list of HouseholdAgent objects
+        list of students assigned to the school (TODO: probably saves memory to only hold student ids..)
+     type : int
+        only one type of schools, used to differentiate from households, type = 2
+     pos : (x,y)
+        (x,y) location of the school on the grid
+
+
+    local_composition : list [ , ]
+        [number of type 0 agents, number of type 1 agents]
+    # TODO: households for now: change to students
+    capacity : int
+        current school capacity
+    neighbourhood_students_indexes : list of HouseholdAgent objects
+        list of HouseholdAgents that have residence in the school neighbourhood
+
+    """
+
+    def __init__(self, pos, model):
+        super().__init__(pos, model)
+
+        self.type = 4
+        self.pos = pos
+
+        # measures
+        self.local_composition = [0, 0]
+        # TODO: households for now: change to students
+        self.neighbourhood_students_indexes = []
+
+
+    def step(self):
+        pass
+
+
+    def get_local_school_composition(self):
+        """
+        Gets composition of the school, number of agents allocated to the school for each type
+        Sets the local composition attribute
+        Sets the current capacity
+        TODO: probably not needed to calculate and update every time this is called
+
+        :return: local composition [number of type 0 agents, number of type 1 agents]
+        """
+        # get the composition of the students in the neighbourhood
+
+        local_composition = get_counts_util(students=self.students, model=self.model)
+
+        self.local_composition = local_composition
+
+        self.current_capacity = np.sum(self.local_composition)
+
+        return(local_composition)
+
+
+    def get_local_neighbourhood_composition(self):
+
+        """
+        get the composition of the students in the neighbourhood
+
+        :return: [number of type 0, number of type 1]
+        """
+        neighbourhood_students = []
+
+        #print("id, students",self.unique_id, len(self.neighbourhood_students_indexes))
+        neighbourhood_students = self.model.get_households_from_index(self.neighbourhood_students_indexes)
+        local_neighbourhood_composition = get_counts_util(neighbourhood_students, self.model)
+        #print("step ",self.model.schedule.steps," neighb students ",len(self.neighbourhood_students))
+
+        return (local_neighbourhood_composition)
+
+
+
 
 
 class HouseholdAgent(Agent):
-    '''
-    Schelling segregation agent
-    '''
-    def __init__(self, pos, model, agent_type):
-        '''
-         Create a new Schelling agent.
+    """
+     A class used to represent the Household Agents
 
-         Args:
-            unique_id: Unique identifier for the agent.
-            x, y: Agent initial location.
-            agent_type: Indicator for the agent's type (minority=1, majority=0)
-        '''
+     ...
+
+     Attributes
+     ----------
+
+    Static :
+    T :  float 0<T<1
+        Model utility threshold
+    children : int
+        Not used yet
+    schelling : bool
+        Whether to use Schelling utility function or assymetric
+
+
+
+    Non-static :
+    dist_to_school :
+    local_composition :
+    fixed_local_composition
+    variable_local_composition
+    closer_school :
+    Dj = []
+    school : School Object
+        School object the Agent is allocated tO
+    pos : (x,y)
+        (x,y) position of Agent on the grid
+    school_utilities : list
+        list of utility values for available schools - updated at every evaluation
+    residential_utilities :
+        list of utility values for empty sites - updated at every evaluation
+
+    """
+
+
+    def __init__(self, pos, model, agent_type, household_index):
+
+        """
+        Create a new Household agent.
+
+        unique_id
+        :param pos: (x,y)
+            Agent initial location (also sets the unique_id)
+        :param model:
+        :param agent_type: 0 or 1
+            Indicator for the agent's type (minority=1, majority=0)
+
+        """
+
         super().__init__(pos, model)
         self.type = agent_type
 
@@ -111,6 +262,7 @@ class HouseholdAgent(Agent):
         self.local_composition = None
         self.fixed_local_composition = None
         self.variable_local_composition = None
+        self.household_index = household_index
 
         self.pos = pos
 
@@ -121,26 +273,6 @@ class HouseholdAgent(Agent):
         self.residential_utilities = []
 
 
-
-
-    # def calculate_distances(self):
-    #     '''
-    #     calculate distance between school and household
-    #     Euclidean or gis shortest road route
-    #     :return: dist
-    #     '''
-    #     Dj = np.zeros((len(self.model.school_locations),1))
-    #
-    #     for i, loc in enumerate(self.model.school_locations):
-    #
-    #         Dj[i] = np.linalg.norm(np.array(self.pos)- np.array(loc))
-    #     self.Dj = Dj
-    #
-    #     print("calculating distances", Dj)
-    #
-    #     closer_school_index = np.argmin(self.Dj)
-    #     self.closer_school = self.model.schools[closer_school_index]
-    #
 
     def calculate_distances(self, Dij):
         '''
@@ -161,14 +293,15 @@ class HouseholdAgent(Agent):
         self.closer_school = self.model.schools[closer_school_index]
 
 
-    def get_closer_school(self):
-
-        return(self.closer_school)
-
-
-
 
     def step(self):
+        """
+        Advance the Household Agent by one step
+        Can be residential step or school step
+
+
+        :return:
+        """
         if self.model.schedule.steps < self.model.residential_steps:
             residential_move = True
         else:
@@ -195,6 +328,7 @@ class HouseholdAgent(Agent):
                     self.model.res_happy += 1
 
                 self.model.total_considered += 1
+                #print("considered",self.model.total_considered)
 
 
         else:
@@ -218,6 +352,14 @@ class HouseholdAgent(Agent):
 
 
     def get_res_satisfaction(self, position):
+        """
+
+        :param position: (x,y)
+            position to be evaluated (current or new)
+
+        :return: P
+            The residential utility of the agent at the given position
+        """
 
 
         x, y = self.get_like_neighbourhood_composition(position, radius=self.model.radius ,bounded=self.model.bounded)
@@ -232,20 +374,28 @@ class HouseholdAgent(Agent):
 
 
     def get_like_neighbourhood_composition(self, position, radius, bounded=False):
+        """
+
+        :param position: (x,y)
+            position to be evaluated (current or new)
+        :param radius:
+        :param bounded: bool
+            Consider a fixed bounded neighbourhood
+        :return:
+        """
 
         # warning: for now only suitable for 2 gropups
         x = 0 # like neighbours
         y = 0 # unlike neighbours
 
         if bounded:
-            composition = self.model.get_closer_school_from_position(position).get_local_neighbourhood_composition()
-            #print("school comp ", composition)
+            composition = self.model.get_closer_neighbourhood_from_position(position).get_local_neighbourhood_composition()
+            #print("neighbourhood comp ", composition)
             for type in [0,1]:
                 if type == self.type:
                     x = composition[type]
                 else:
                     y = composition[type]
-
 
 
 
@@ -265,7 +415,16 @@ class HouseholdAgent(Agent):
 
 
     def get_local_neighbourhood_composition(self, position, radius, bounded=False):
+        """
 
+        :param position:
+        :param radius:
+        :param bounded:
+        :return: [number type 0, number of type 1]
+        """
+
+        # this is not really a duplicate of the above function
+        #
         # warning: for now only suitable for 2 gropups
         type1 = 0
         type2 = 0
@@ -275,8 +434,6 @@ class HouseholdAgent(Agent):
         #     x, y = self.get_closer_school().get_local_neighbourhood_composition()
         #
         # else:
-
-
 
         neighbours = self.model.grid.get_neighbors(position, moore=True, radius=radius)
 
@@ -295,6 +452,12 @@ class HouseholdAgent(Agent):
 
 
     def evaluate_move(self,U, school=True):
+        """
+
+        :param U:
+        :param school:
+        :return:
+        """
 
         if school:
             # choose proportional or deterministic
@@ -316,6 +479,13 @@ class HouseholdAgent(Agent):
 
 
     def choose_candidate(self, U, utilities):
+        """
+
+        :param U:
+        :param utilities:
+        :return:
+        """
+
 
         boltzmann_probs = []
         proportional_probs = []
@@ -351,13 +521,20 @@ class HouseholdAgent(Agent):
 
     def get_school_utilities(self):
 
+        """
+
+
+
+        :return:
+        """
         utilities = []
         for school_index, candidate_school in enumerate(self.model.schools):
             # check whether school is eligible to move to
             # if candidate_school.current_capacity <= (candidate_school.capacity + 10) and candidate_school!=self.school:
-            # print(candidate_school.current_capacity,candidate_school.capacity )
+            #print(candidate_school.current_capacity,candidate_school.capacity )
+            # TODO: it would be safer to check that the Dj is for the actual school,
+            #   use the positions of the school and make an NXN array for Dj
             if candidate_school.current_capacity <= (candidate_school.capacity):
-
                 U_candidate = self.get_school_satisfaction(candidate_school, dist=self.Dj[school_index])
                 utilities.append(U_candidate)
 
@@ -370,7 +547,15 @@ class HouseholdAgent(Agent):
             sys.exit()
         return utilities
 
+
+
     def get_residential_utilities(self):
+
+        """
+
+
+        :return:
+        """
 
         empties = [] # just a list of positions
         candidates = [] # just a list of positions
@@ -401,9 +586,19 @@ class HouseholdAgent(Agent):
         candidates.append(self.pos)
 
         utilities.append(self.get_res_satisfaction(self.pos))
+        #print("utilities number",len(utilities), len(empties))
         return candidates, utilities
 
+
+
     def get_boltzman_probability(self,U, U_candidate):
+
+        """
+
+        :param U:
+        :param U_candidate:
+        :return:
+        """
 
         deltaU = U_candidate-U
 
@@ -414,6 +609,13 @@ class HouseholdAgent(Agent):
 
     def move_school(self, school_index, new_school):
 
+
+        """
+
+        :param school_index:
+        :param new_school:
+        :return:
+        """
         # Removes student from current school and allocates to new
         # only do the actually move if it is really a different school otherwise stay
         if self.model.schools[school_index] != self.school:
@@ -441,17 +643,24 @@ class HouseholdAgent(Agent):
         :param new_position: (x,y) location to move to
         :return: None
         """
-
+        old_pos = self.pos
         if bounded:
 
-            self.model.get_closer_school_from_position(self.pos).neighbourhood_students.remove(self)
+            #print("old, new_pos",self.pos, new_position)
 
-            #if(self.get_closer_school_from_position(self.pos) == self.get_closer_school())
+            #print("indexes",len(self.model.get_closer_neighbourhood_from_position(old_pos).neighbourhood_students_indexes), self.household_index)
+
+            self.model.get_closer_neighbourhood_from_position(self.pos).neighbourhood_students_indexes.remove(self.household_index)
+
             self.model.grid.move_agent(self, new_position)
 
-            new_school = self.model.get_closer_school_from_position(new_position)
+            #print("indexes",len(self.model.get_closer_neighbourhood_from_position(old_pos).neighbourhood_students_indexes), self.household_index)
 
-            new_school.neighbourhood_students.append(self)
+            new_neighbourhood = self.model.get_closer_neighbourhood_from_position(new_position)
+            #print("before",len(new_neighbourhood.neighbourhood_students_indexes))
+
+            new_neighbourhood.neighbourhood_students_indexes.append(self.household_index)
+            #print("after",len(new_neighbourhood.neighbourhood_students_indexes))
 
 
             self.model.res_moves += 1

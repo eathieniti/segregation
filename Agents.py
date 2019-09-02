@@ -249,7 +249,6 @@ class HouseholdAgent(Agent):
         else:
             self.fs = self.f
 
-
         self.M = model.M[agent_type]
 
 

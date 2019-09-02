@@ -226,24 +226,32 @@ class SchoolModel(Model):
 
 
 
-        #for i in range(self.num_schools):
+        print(school_positions)
+        #for i in range(self.num_schools):i
+        i=0
         while len(self.schools)<self.num_schools:
-
 
             if self.symmetric_positions or self.school_pos:
                 x = int(school_positions[i][0])
                 y = int(school_positions[i][1])
 
+                #print(x,y)
+
             else:
-                x = random.randrange(start=3,stop=self.grid.width-3)
-                y = random.randrange(start=3,stop=self.grid.height-3)
+                x = random.randrange(start=2,stop=self.grid.width-2)
+                y = random.randrange(start=2,stop=self.grid.height-2)
 
             pos = (x,y)
-            pos2 = (x+2,y+2)
-            pos3 = (x-1,y-2)
+            pos2 = (x+1,y+1)
+            pos3 = (x-1,y-1)
             do_not_use = self.school_locations + self.neighbourhood_locations
             if (pos2 not in do_not_use) and (pos not in do_not_use ) and (pos3 not in do_not_use ):
 
+            print('pos',pos,pos2,pos3)
+
+
+            if (pos not in do_not_use) and (pos2 not in do_not_use ) and (pos3 not in do_not_use ):
+                #print('pos',pos,pos2,pos3)
                 self.school_locations.append(pos2)
                 school = SchoolAgent(pos2, self)
                 self.grid.place_agent(school, school.unique_id)
@@ -263,9 +271,13 @@ class SchoolModel(Model):
                 self.grid.place_agent(neighbourhood, neighbourhood.unique_id)
                 self.neighbourhoods.append(neighbourhood)
                 self.schedule.add(neighbourhood)
+
+            else:
+                print(pos,pos2,pos3, "is found in",do_not_use )
+            i+=1
         #print("num_schools",self.num_schools)
 
-
+        print("schools completed")
 
         #print(self.neighbourhood_locations)
         #print("schools",self.school_locations, len(self.school_locations))

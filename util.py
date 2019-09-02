@@ -28,11 +28,12 @@ def segregation_index(model, unit = "school" , radius=1):
 
 
     elif unit == "neighbourhood":
-        for s_ind, school in enumerate(model.schools):
-            local_composition = school.get_local_neighbourhood_composition()
+        for s_ind, neighbourhood in enumerate(model.neighbourhoods):
+            local_composition = neighbourhood.get_local_neighbourhood_composition()
             local_compositions[s_ind][:] = local_composition
             pi_jm[s_ind][:] = local_composition / np.sum(local_composition)
-
+        print("compositions",len(local_compositions))
+        print(np.sum(local_compositions))
 
     elif unit == "agents_neighbourhood":
 
@@ -65,7 +66,6 @@ def segregation_index(model, unit = "school" , radius=1):
             household_agent.fixed_local_composition = local_composition
 
             model.average_like_fixed = np.mean(pi_jm[:,0])
-
 
 
     else:

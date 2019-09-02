@@ -7,6 +7,7 @@ from scipy.spatial import distance, Voronoi, voronoi_plot_2d
 import pandas as pd
 import numpy as np
 import random
+import sys
 from collections import Counter
 from util import segregation_index, calculate_segregation_index, dissimilarity_index, \
     calculate_collective_utility, get_counts_util
@@ -100,7 +101,7 @@ class SchoolModel(Model):
     """
 
 
-    def __init__(self, height=100, width=100, density=0.9, num_schools=64,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6,\
+    def __init__(self, height=100, width=100, density=0.9, num_schools=32,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6,\
                  M0=0.8,M1=0.8,T=0.8,
                  alpha=0.5, temp=1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
                  residential_steps=50,schelling=False,bounded=True,
@@ -133,6 +134,7 @@ class SchoolModel(Model):
         self.fs = fs
 
 
+
         # choice parameters
         self.alpha = alpha
         self.temp = temp
@@ -146,6 +148,7 @@ class SchoolModel(Model):
 
         self.num_households = int(width*height*density)
         num_min_households = int(self.minority_pc * self.num_households)
+        self.num_neighbourhoods = int(self.num_schools/2)
         self.pm = [self.num_households-num_min_households, num_min_households]
 
         self.schedule = RandomActivation(self)
@@ -196,44 +199,47 @@ class SchoolModel(Model):
 
 
         # if schools already supplied place them where they should be
-
+        # TODO: fix
         if self.school_pos:
             school_positions = self.school_pos
             self.school_locations = school_pos
             self.num_schools = len(school_pos)
+            print("Option not working")
+            sys.exit()
+
 
         # otherwise calculate the positions
         else:
-            if self.num_schools == 4:
-                school_positions = [(width/4,height/4),(width*3/4,height/4),(width/4,height*3/4),(width*3/4,height*3/4)]
-            elif self.num_schools == 9:
+            if self.num_neighbourhoods == 4:
+                neighbourhood_positions = [(width/4,height/4),(width*3/4,height/4),(width/4,height*3/4),(width*3/4,height*3/4)]
+            elif self.num_neighbourhoods == 9:
                 n=6
-                school_positions = [(width/n,height/n),(width*3/n,height*1/n),(width*5/n,height*1/n),(width/n,height*3/n),\
+                neighbourhood_positions = [(width/n,height/n),(width*3/n,height*1/n),(width*5/n,height*1/n),(width/n,height*3/n),\
                                     (width*3/n,height*3/n),(width*5/n,height*3/n),(width*1/n,height*5/n),(width*3/n,height*5/n),\
                                     (width*5/n,height*5/n)]
 
-            elif self.num_schools in [25, 64, 16]:
-                school_positions = []
-                n=int(np.sqrt( self.num_schools)*2)
+            elif self.num_neighbourhoods in [25, 64, 16]:
+                neighbourhood_positions = []
+                n=int(np.sqrt( self.num_neighbourhoods)*2)
                 print(n)
                 x1 = range(1,int(n+1),2)
 
                 xloc = np.repeat(x1, int(n/2))
                 yloc = np.tile(x1, int(n/2))
 
-                for i in range( self.num_schools):
-                    school_positions.append((xloc[i] * height / n, yloc[i] * width / n))
+                for i in range(self.num_neighbourhoods):
+                    neighbourhood_positions.append((xloc[i] * height / n, yloc[i] * width / n))
 
 
 
-        print(school_positions)
+        print(neighbourhood_positions)
         #for i in range(self.num_schools):i
         i=0
-        while len(self.schools)<self.num_schools:
+        while len(self.neighbourhoods)<self.num_neighbourhoods:
 
             if self.symmetric_positions or self.school_pos:
-                x = int(school_positions[i][0])
-                y = int(school_positions[i][1])
+                x = int(neighbourhood_positions[i][0])
+                y = int(neighbourhood_positions[i][1])
 
                 #print(x,y)
 
@@ -242,14 +248,9 @@ class SchoolModel(Model):
                 y = random.randrange(start=2,stop=self.grid.height-2)
 
             pos = (x,y)
-            pos2 = (x+1,y+1)
-            pos3 = (x-1,y-1)
+            pos2 = (x+2,y+2)
+            pos3 = (x-2,y-2)
             do_not_use = self.school_locations + self.neighbourhood_locations
-            if (pos2 not in do_not_use) and (pos not in do_not_use ) and (pos3 not in do_not_use ):
-
-            print('pos',pos,pos2,pos3)
-
-
             if (pos not in do_not_use) and (pos2 not in do_not_use ) and (pos3 not in do_not_use ):
                 #print('pos',pos,pos2,pos3)
                 self.school_locations.append(pos2)

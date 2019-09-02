@@ -101,7 +101,7 @@ class SchoolModel(Model):
     """
 
 
-    def __init__(self, height=100, width=100, density=0.9, num_schools=32,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6,\
+    def __init__(self, height=100, width=100, density=0.9, num_neighbourhoods=16, schools_per_neighbourhood=2,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6,\
                  M0=0.8,M1=0.8,T=0.8,
                  alpha=0.5, temp=1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
                  residential_steps=50,schelling=False,bounded=True,
@@ -114,7 +114,7 @@ class SchoolModel(Model):
         self.width = width
         print("h x w",height, width)
         self.density = density
-        self.num_schools= num_schools
+        #self.num_schools= num_schools
         self.f = [f0,f1]
         self.M = [M0,M1]
         self.residential_steps = residential_steps
@@ -148,7 +148,9 @@ class SchoolModel(Model):
 
         self.num_households = int(width*height*density)
         num_min_households = int(self.minority_pc * self.num_households)
-        self.num_neighbourhoods = int(self.num_schools/2)
+        self.num_neighbourhoods = num_neighbourhoods
+        self.schools_per_neigh = schools_per_neighbourhood
+        self.num_schools = int(num_neighbourhoods / self.schools_per_neigh)
         self.pm = [self.num_households-num_min_households, num_min_households]
 
         self.schedule = RandomActivation(self)
@@ -248,10 +250,15 @@ class SchoolModel(Model):
                 y = random.randrange(start=2,stop=self.grid.height-2)
 
             pos = (x,y)
-            pos2 = (x+2,y+2)
-            pos3 = (x-2,y-2)
+            pos2 =(x+1,y+1)
+            if schools_per_neighbourhood ==2:
+                pos3 = (x-10,y-10)
+                pos2 = (x+10,y+10)
+
             do_not_use = self.school_locations + self.neighbourhood_locations
-            if (pos not in do_not_use) and (pos2 not in do_not_use ) and (pos3 not in do_not_use ):
+            #if (pos not in do_not_use) and (pos2 not in do_not_use ) and (pos3 not in do_not_use ):
+            if (pos not in do_not_use) and (pos2 not in do_not_use) :
+
                 #print('pos',pos,pos2,pos3)
                 self.school_locations.append(pos2)
                 school = SchoolAgent(pos2, self)
@@ -259,12 +266,13 @@ class SchoolModel(Model):
                 self.schools.append(school)
                 self.schedule.add(school)
 
-                # Add another school
-                self.school_locations.append(pos3)
-                school = SchoolAgent(pos3, self)
-                self.grid.place_agent(school, school.unique_id)
-                self.schools.append(school)
-                self.schedule.add(school)
+                if self.schools_per_neigh == 2:
+                    # Add another school
+                    self.school_locations.append(pos3)
+                    school = SchoolAgent(pos3, self)
+                    self.grid.place_agent(school, school.unique_id)
+                    self.schools.append(school)
+                    self.schedule.add(school)
 
 
                 self.neighbourhood_locations.append(pos)
@@ -426,7 +434,7 @@ class SchoolModel(Model):
         print("height = %d; width = %d; density = %.2f; num_schools = %d; minority_pc =  %.2f; "
               "f0 =  %.2f; f1 =  %.2f; M0 =  %.2f; M1 =  %.2f;\
         alpha =  %.2f; temp =  %.2f; cap_max =  %.2f; move = %s; symmetric_positions = %s"%(height,
-         width, density, num_schools,minority_pc,f0,f1, M0,M1,alpha,
+         width, density, self.num_schools,minority_pc,f0,f1, M0,M1,alpha,
                                        temp, cap_max, move, symmetric_positions ))
 
         self.total_considered = 0

@@ -106,7 +106,7 @@ class SchoolModel(Model):
                  alpha=0.5, temp=1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
                  residential_steps=50,schelling=False,bounded=True,
                  residential_moves_per_step=2000, school_moves_per_step =2000,radius=6,proportional = False,
-                 torus=False,fs="eq", extended_data = False, school_pos=None, agents=None, sample=7, variable_f=True, sigma=0.5 ):
+                 torus=False,fs="eq", extended_data = False, school_pos=None, agents=None, sample=7, variable_f=True, sigma=0.5, displacement=8 ):
 
 
         # Options  for the model
@@ -252,8 +252,8 @@ class SchoolModel(Model):
             pos = (x,y)
             pos2 =(x+1,y+1)
             if schools_per_neighbourhood ==2:
-                pos3 = (x-10,y-10)
-                pos2 = (x+10,y+10)
+                pos3 = (x-displacement,y-displacement)
+                pos2 = (x+displacement,y+displacement)
 
             do_not_use = self.school_locations + self.neighbourhood_locations
             #if (pos not in do_not_use) and (pos2 not in do_not_use ) and (pos3 not in do_not_use ):

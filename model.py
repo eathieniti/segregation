@@ -102,7 +102,7 @@ class SchoolModel(Model):
 
 
     def __init__(self, height=100, width=100, density=0.9, num_neighbourhoods=16, schools_per_neighbourhood=2,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6,\
-                 M0=0.8,M1=0.8,T=0.8,
+                 M0=0.8,M1=0.8,T=0.65,
                  alpha=0.5, temp=1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
                  residential_steps=50,schelling=False,bounded=True,
                  residential_moves_per_step=2000, school_moves_per_step =2000,radius=6,proportional = False,
@@ -150,7 +150,7 @@ class SchoolModel(Model):
         num_min_households = int(self.minority_pc * self.num_households)
         self.num_neighbourhoods = num_neighbourhoods
         self.schools_per_neigh = schools_per_neighbourhood
-        self.num_schools = int(num_neighbourhoods / self.schools_per_neigh)
+        self.num_schools = int(num_neighbourhoods * self.schools_per_neigh)
         self.pm = [self.num_households-num_min_households, num_min_households]
 
         self.schedule = RandomActivation(self)
@@ -252,8 +252,8 @@ class SchoolModel(Model):
             pos = (x,y)
             pos2 =(x+1,y+1)
             if schools_per_neighbourhood ==2:
-                pos3 = (x-10,y-10)
-                pos2 = (x+10,y+10)
+                pos3 = (x-5,y-5)
+                pos2 = (x+5,y+5)
 
             do_not_use = self.school_locations + self.neighbourhood_locations
             #if (pos not in do_not_use) and (pos2 not in do_not_use ) and (pos3 not in do_not_use ):
@@ -284,7 +284,7 @@ class SchoolModel(Model):
             else:
                 print(pos,pos2,pos3, "is found in",do_not_use )
             i+=1
-        #print("num_schools",self.num_schools)
+        print("num_schools",len(self.school_locations))
 
         print("schools completed")
 

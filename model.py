@@ -150,7 +150,7 @@ class SchoolModel(Model):
         num_min_households = int(self.minority_pc * self.num_households)
         self.num_neighbourhoods = num_neighbourhoods
         self.schools_per_neigh = schools_per_neighbourhood
-        self.num_schools = int(num_neighbourhoods / self.schools_per_neigh)
+        self.num_schools = int(num_neighbourhoods * self.schools_per_neigh)
         self.pm = [self.num_households-num_min_households, num_min_households]
 
         self.schedule = RandomActivation(self)

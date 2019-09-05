@@ -11,6 +11,8 @@ from collections import Counter
 from util import segregation_index, calculate_segregation_index, dissimilarity_index, \
     calculate_collective_utility, get_counts_util
 
+from scipy import stats
+
 print("mesa",mesa.__file__)
 
 
@@ -238,10 +240,15 @@ class HouseholdAgent(Agent):
 
         # draw a value for f from a normal distribution
         if self.model.variable_f:
-            self.f = np.random.normal(model.f[agent_type], model.sigma)
+            #self.f = np.random.normal(model.f[agent_type], model.sigma)
+            lower, upper = 0, 1
+            mu, sigma = model.f[agent_type], model.sigma
+            X = stats.truncnorm(
+                (lower - mu) / sigma, (upper - mu) / sigma, loc=mu, scale=sigma)
+            self.f = X.rvs(1)
+
         else:
             self.f = model.f[agent_type]
-
 
         # TODO: extend fs to allow different numbers for different agent types
         if model.fs != "eq":

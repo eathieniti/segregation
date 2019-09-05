@@ -85,27 +85,29 @@ def segregation_index(model, unit = "school" , radius=1):
 def calculate_segregation_index(local_compositions, pi_jm, pm):
 
     """
-    :param model
+    Calculates Theil's segregation index
 
-    pi_jm: proportions in unit j that belongs to group m, shape: (j,m) (schools,groups)
-    pm: proportion in group m (m,1)
-
-    tj: total number in unit j - dim: (1,j)
-
-    :return: information theory index
-
+    :param local_compositions: (j,m)
+        The numbers of each group for each unit
+        eg. [[5,7]
+            [7,5]]
+    :param pi_jm: shape: (j,m) (schools,groups)
+        proportions in unit j that belongs to group m
+    :param pm: shape (m,1)
+        proportion in group m
+    :return: seg_index
+        Theil's information theory index for segregation
     """
 
+    #tj: total number in unit (school or neighbourhood) j - dim: (1,j)
+
+
+
     T=np.sum(local_compositions)
-
     tj = np.sum(local_compositions,axis=1, keepdims=True)
-
     #pm = np.sum(pi_jm,axis=0)/np.sum(pi_jm, keepdims=True)
 
     pm = np.array(pm)
-
-
-
     E = np.sum(pm*np.log(1/pm))
 
     #print("tj/TE",tj / (T * E))
@@ -117,15 +119,6 @@ def calculate_segregation_index(local_compositions, pi_jm, pm):
     seg_index = np.sum(tj / (T*E) * pi_jm * log_matrix, axis=None)
 
     # print("pm", pm)
-
-    # if seg_index>1:
-    #     print("tj",tj )
-    #
-    #     print("tj/TE",tj / (T * E))
-    #     print("pi_jm",pi_jm)
-    #     print("pi_jm/pm",pi_jm/pm)
-    #
-    #     print("pm",pm)
 
     return(seg_index)
 
@@ -162,15 +155,22 @@ def calculate_collective_utility(model):
 
 
 def get_counts_util(students, model):
+    """
+    just gathers counts for each type, independent of agent's type
+    works for schools, agents, and schools neighbourhoods
+    needed for calculate_segregation_index() function
 
-        # just gathers counts for each type, independent of agent's type
-        # works for schools, agents, and schools neighbourhoods
+    :param students: list of HouseholdAgent objects
+            A list of the students
+    :param model:
+    :return:
+    """
+    local_composition = [0, 0]
 
-        local_composition = [0, 0]
+    d = [student.type for student in students]
 
-        d = [student.type for student in students]
+    for agent_type in range(len(model.household_types)):
+       local_composition[agent_type] = d.count(agent_type)
 
-        for agent_type in range(len(model.household_types)):
-            local_composition[agent_type] = d.count(agent_type)
+    return (local_composition)
 
-        return (local_composition)

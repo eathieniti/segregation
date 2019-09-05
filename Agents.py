@@ -530,9 +530,6 @@ class HouseholdAgent(Agent):
     def get_school_utilities(self):
 
         """
-
-
-
         :return:
         """
         utilities = []
@@ -647,45 +644,37 @@ class HouseholdAgent(Agent):
     def move_residence(self, new_position, bounded=False):
         """
 
-
         :param new_position: (x,y) location to move to
         :return: None
         """
-        old_pos = self.pos
         if bounded:
 
-            #print("old, new_pos",self.pos, new_position)
-
-            #print("indexes",len(self.model.get_closer_neighbourhood_from_position(old_pos).neighbourhood_students_indexes), self.household_index)
-
             self.model.get_closer_neighbourhood_from_position(self.pos).neighbourhood_students_indexes.remove(self.household_index)
-
             self.model.grid.move_agent(self, new_position)
 
-            #print("indexes",len(self.model.get_closer_neighbourhood_from_position(old_pos).neighbourhood_students_indexes), self.household_index)
 
             new_neighbourhood = self.model.get_closer_neighbourhood_from_position(new_position)
-            #print("before",len(new_neighbourhood.neighbourhood_students_indexes))
-
             new_neighbourhood.neighbourhood_students_indexes.append(self.household_index)
-            #print("after",len(new_neighbourhood.neighbourhood_students_indexes))
-
 
             self.model.res_moves += 1
 
         else:
 
             self.model.grid.move_agent(self, new_position)
-
             self.model.res_moves += 1
 
 
 
     def get_school_satisfaction(self, school, dist):
+        """
+        :param school: School object
+        :param dist: distance to school
+        :return:
+        """
+
         # x: local number of agents of own group in the school or neighbourhood
         # p: total number of agents in the school or neighbourhood
         # For the schools we add the distance satisfaction
-
 
         x = school.get_local_school_composition()[self.type]
         p = np.sum(school.get_local_school_composition())
@@ -693,7 +682,6 @@ class HouseholdAgent(Agent):
         dist = float(dist)
 
         P = self.ethnic_utility(x=x,p=p, f=self.fs,schelling =self.schelling)
-
 
         D = (self.model.max_dist - dist) / self.model.max_dist
         #print("D", D)
@@ -704,15 +692,19 @@ class HouseholdAgent(Agent):
 
 
     def ethnic_utility(self, x, p, f, schelling=False):
+        """
+        Calculate the utility for the ethnic composition
+        :param x: local number of agents of own group in the school or neighbourhood
+        :param p: total number of agents in the school or neighbourhood
+        :param f:
+        :param schelling: if True use Schelling utility function
+        :return: P
+        """
 
-        # x: local number of agents of own group in the school or neighbourhood
-        # p: total number of agents in the school or neighbourhood
+
         # satisfaction
         fp = float(f * p)
         #print("fp,x",fp,x)
-
-
-        # print(x,p)
         P = 0
 
         if self.type in [0, 1]:

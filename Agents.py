@@ -245,7 +245,7 @@ class HouseholdAgent(Agent):
             mu, sigma = model.f[agent_type], model.sigma
             X = stats.truncnorm(
                 (lower - mu) / sigma, (upper - mu) / sigma, loc=mu, scale=sigma)
-            self.f = X.rvs(1)
+            self.f = np.float(X.rvs(1))
 
         else:
             self.f = model.f[agent_type]
@@ -516,10 +516,12 @@ class HouseholdAgent(Agent):
 
         elif self.model.move == "boltzmann":
             for U_candidate in utilities:
+         
                 boltzmann_probs.append(self.get_boltzman_probability(U, U_candidate))
             # normalize probailities to sum to 1
             boltzmann_probs_normalized = boltzmann_probs / np.sum(boltzmann_probs)
             index_to_move = np.random.choice(len(boltzmann_probs_normalized), p=boltzmann_probs_normalized)
+
         else:
             print("No valid move recipe selected")
 
@@ -606,7 +608,7 @@ class HouseholdAgent(Agent):
         :return:
         """
 
-        deltaU = U_candidate-U
+        deltaU = np.float(U_candidate)-np.float(U)
 
         return(1/(1+np.exp(-deltaU/self.model.temp)))
 

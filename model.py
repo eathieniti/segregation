@@ -251,13 +251,14 @@ class SchoolModel(Model):
 
             pos = (x,y)
             pos2 =(x+1,y+1)
+            pos3 = (-100,-100)
             if schools_per_neighbourhood ==2:
                 pos3 = (x-displacement,y-displacement)
                 pos2 = (x+displacement,y+displacement)
 
             do_not_use = self.school_locations + self.neighbourhood_locations
             #if (pos not in do_not_use) and (pos2 not in do_not_use ) and (pos3 not in do_not_use ):
-            if (pos not in do_not_use) and (pos2 not in do_not_use) :
+            if (pos not in do_not_use) and (pos2 not in do_not_use) and  (pos3 not in do_not_use ):
 
                 #print('pos',pos,pos2,pos3)
                 self.school_locations.append(pos2)

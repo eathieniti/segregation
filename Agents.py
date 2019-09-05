@@ -245,7 +245,7 @@ class HouseholdAgent(Agent):
             mu, sigma = model.f[agent_type], model.sigma
             X = stats.truncnorm(
                 (lower - mu) / sigma, (upper - mu) / sigma, loc=mu, scale=sigma)
-            self.f = X.rvs(1)
+            self.f = float(X.rvs(1))
 
         else:
             self.f = model.f[agent_type]

@@ -26,7 +26,7 @@ from SALib.test_functions import Ishigami
 import numpy as np
 import multiprocessing
 
-from params_copy import *
+from params_full import *
 
 
 total_steps=num_steps+residential_steps;max_steps=total_steps;
@@ -173,6 +173,6 @@ def run_sensitivity_parallel(param_values):
 
 
 
-residential_steps=80;
-param_values = saltelli.sample(segregation_problem, 30)
+#residential_steps=80;
+param_values = saltelli.sample(segregation_problem, 2)
 run_sensitivity_parallel(param_values)

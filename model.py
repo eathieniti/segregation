@@ -49,11 +49,11 @@ class SchoolModel(Model):
     cap_max : float
         school capacity TODO: explain
     radius : int
-        neighbourhood radius for agents calculation of residential choice (only used if not bounded)
+        neighbourhood radius for agents calculation of residential choice (only used if bounded=False)
     household_types :
         labels for different ethnic types of households
     symmetric_positions :
-        use symmetric positions for the schools along the grid, or random
+        use regularly placed positions for the schools along the grid, or random
     schelling :
         if True use schelling utility function otherwise use assymetric
     school_pos :
@@ -64,9 +64,9 @@ class SchoolModel(Model):
     sample : int
         subsample the empty residential sites to be evaluated to speed up computation
     variable_f : variable_f
-        draw values of the ethnic preference, f from a normal distribution
+        draw values of the ethnic preference, f, from a normal distribution
     sigma : float
-        The standard deviation of the normal distribution used for f
+        The standard deviation of the normal distribution used for variable_f
     alpha : float
         ratio of ethnic to distance to school preference for school utility
     temp : float
@@ -101,7 +101,7 @@ class SchoolModel(Model):
     """
 
 
-    def __init__(self, height=100, width=100, density=0.9, num_neighbourhoods=16, schools_per_neighbourhood=2,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6,\
+    def __init__(self, height=100, width=100, density=0.9, num_neighbourhoods=16, schools_per_neighbourhood=2,minority_pc=0.5, f0=0.6,f1=0.6,\
                  M0=0.8,M1=0.8,T=0.75,
                  alpha=0.5, temp=1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
                  residential_steps=70,schelling=False,bounded=True,
@@ -110,27 +110,27 @@ class SchoolModel(Model):
 
 
         # Options  for the model
-        self.height = height
-        self.width = width
+        self.height = int(height)
+        self.width = int(width)
         print("h x w",height, width)
-        self.density = density
+        self.density = float(density)
         #self.num_schools= num_schools
         self.f = [f0,f1]
         self.M = [M0,M1]
-        self.residential_steps = residential_steps
+        self.residential_steps = int(residential_steps)
         self.minority_pc = minority_pc
         self.bounded = bounded
         self.cap_max=cap_max
         self.T = T
         self.radius = radius
-        self.household_types = [0, 1] # majority, minority !!
+        self.household_types = [0, 1] # majority, minority, important !!
         self.symmetric_positions = symmetric_positions
         self.schelling=schelling
         self.school_pos = school_pos
         self.extended_data = extended_data
-        self.sample = sample
+        self.sample = int(sample)
         self.variable_f = variable_f
-        self.sigma = sigma
+        self.sigma = float(sigma)
         self.fs = fs
 
 
@@ -196,7 +196,9 @@ class SchoolModel(Model):
         # We use a grid iterator that returns
         # the coordinates of a cell as well as
         # its contents. (coord_iter)
+
         # Set up schools in symmetric positions along the grid
+        # TODO: the setting up of agents is messy... reorganize
 
 
 
@@ -426,16 +428,19 @@ class SchoolModel(Model):
             #school.get_local_school_composition()
             #cap = round(np.random.normal(loc=cap_max * self.avg_school_size, scale=self.avg_school_size * 0.05))
             cap = self.avg_school_size * self.cap_max
-            school.capacity = cap
+            school.capacity = int(cap)
             print("cap",self.avg_school_size, cap)
             segregation_index(self)
         #
 
         print("height = %d; width = %d; density = %.2f; num_schools = %d; minority_pc =  %.2f; "
               "f0 =  %.2f; f1 =  %.2f; M0 =  %.2f; M1 =  %.2f;\
-        alpha =  %.2f; temp =  %.2f; cap_max =  %.2f; move = %s; symmetric_positions = %s"%(height,
+        alpha =  %.2f; temp =  %.2f; cap_max =  %.2f; move = %s; symmetric_positions = %s; bounded = %s; radius = %d ; schelling= %s"%(height,
          width, density, self.num_schools,minority_pc,f0,f1, M0,M1,alpha,
-                                       temp, cap_max, move, symmetric_positions ))
+                                       temp, cap_max, move, symmetric_positions,bounded, radius, schelling ) )# Options  for the model
+
+
+
 
         self.total_considered = 0
         self.running = True

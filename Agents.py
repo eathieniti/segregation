@@ -241,8 +241,10 @@ class HouseholdAgent(Agent):
         # draw a value for f from a normal distribution
         if self.model.variable_f:
             #self.f = np.random.normal(model.f[agent_type], model.sigma)
-            lower, upper = 0, 1
-            mu, sigma = model.f[agent_type], model.sigma
+            lower, upper = float(0), float(1)
+            mu, sigma = float(model.f[agent_type]), float(model.sigma)
+
+            print("sigma",mu, sigma, lower, upper)
             X = stats.truncnorm(
                 (lower - mu) / sigma, (upper - mu) / sigma, loc=mu, scale=sigma)
             self.f = np.float(X.rvs(1))

@@ -37,7 +37,7 @@ factor = "f0"
 fs="eq"
 
 
-def get_filename_pattern(params):
+def get_filename_pattern():
     fs_print = fs
     if fs_print=="eq":
         fs_print= 0
@@ -90,8 +90,8 @@ def run_one_simulation(paramset, return_list):
 
 
         model_out = model.datacollector.get_model_vars_dataframe()
-        model_out.T=T;model_out.cap_max=cap_max;model_out.temp=temp;model_out.alpha=alpha;
-        model_out.sigma=sigma;model_out.f0=f0;
+        #model_out.T=T;model_out.cap_max=cap_max;model_out.temp=temp;model_out.alpha=alpha;
+        #model_out.sigma=sigma;model_out.f0=f0;
 
         filename_pattern = get_filename_pattern()
         model_out.to_pickle("dataframes/models_" + filename_pattern + time.strftime("%m%d%H%M"))
@@ -156,7 +156,7 @@ def run_sensitivity_parallel(param_values):
 
     for i, paramset in enumerate(param_values):
 
-        paramset_ = [ '%.2f' % elem for elem in paramset ]
+        paramset_ = [ round(elem,2) % elem for elem in paramset ]
         p = multiprocessing.Process(target=run_one_simulation, args=(paramset_, return_list))
         jobs.append(p)
         p.start()
@@ -174,5 +174,5 @@ def run_sensitivity_parallel(param_values):
 
 
 residential_steps=80;
-param_values = saltelli.sample(segregation_problem, 30)
+param_values = saltelli.sample(segregation_problem, 2)
 run_sensitivity_parallel(param_values)

@@ -17,7 +17,7 @@ from model import SchoolModel
 import time
 import glob
 import os
-
+import pickle
 
 
 from SALib.sample import saltelli
@@ -26,14 +26,13 @@ from SALib.test_functions import Ishigami
 import numpy as np
 
 
-from params_copy import *
 
 
 
 # In[2]:
 
 
-from params_copy import *
+from params_full import *
 
 
 # In[3]:
@@ -120,7 +119,7 @@ residential_steps=80;
 # In[7]:
 
 
-param_values = saltelli.sample(segregation_problem, 5)
+param_values = saltelli.sample(segregation_problem, 30)
 
 
 # In[ ]:
@@ -129,10 +128,12 @@ param_values = saltelli.sample(segregation_problem, 5)
 Y = np.zeros([param_values.shape[0]])
 Y2 =  np.zeros([param_values.shape[0]]) 
 for i, paramset in enumerate(param_values):
-    [Y[i], Y2[i]] = run_one_simulation(paramset)
-    Y.to_pickle("dataframes/"+ "sensitivity"+time.strftime("%Y-%m-%d-%H_%M"))
-    Y2.to_pickle("dataframes/"+ "sensitivity"+time.strftime("%Y-%m-%d-%H_%M"))
-
+    paramset_ = [ '%.2f' % elem for elem in paramset ]
+    [Y[i], Y2[i]] = run_one_simulation(paramset_)
+    with open("dataframes/"+ "sensitivity"+time.strftime("%Y-%m-%d-%H_%M"),'wb') as f:
+        pickle.dump(Y, f)    
+    with open("dataframes/"+ "sensitivity_Y2"+time.strftime("%Y-%m-%d-%H_%M"),'wb') as f:
+        pickle.dump(Y2, f)
 
 # In[ ]:
 

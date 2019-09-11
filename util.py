@@ -35,6 +35,14 @@ def segregation_index(model, unit = "school" , radius=1):
         print("compositions",len(local_compositions))
         print(np.sum(local_compositions))
 
+    elif unit == "school_neighbourhood":
+        for s_ind, school in enumerate(model.schools):
+            local_composition = school.get_local_neighbourhood_composition()
+            local_compositions[s_ind][:] = local_composition
+            pi_jm[s_ind][:] = local_composition / np.sum(local_composition)
+        print("compositions", len(local_compositions))
+        print(np.sum(local_compositions))
+
     elif unit == "agents_neighbourhood":
 
         pi_jm = np.zeros(shape=(len(model.households), len(model.household_types)))
@@ -140,7 +148,12 @@ def dissimilarity_index(model):
 
 
 def calculate_collective_utility(model):
+    """
 
+
+    :param model:
+    :return: average school satisfaction for all agents
+    """
     utilities = []
 
     for household in  model.households:
@@ -151,6 +164,23 @@ def calculate_collective_utility(model):
 
     return(np.mean(utilities))
 
+
+def calculate_res_collective_utility(model):
+    """
+
+
+    :param model:
+    :return: average residential satisfaction for all agents
+    """
+    utilities = []
+
+    for household in  model.households:
+        sat = household.get_res_satisfaction(household.pos)
+        utilities.append(sat)
+
+    print(np.mean(utilities))
+
+    return(np.mean(utilities))
 
 
 

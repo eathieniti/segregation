@@ -10,7 +10,7 @@ import random
 import sys
 from collections import Counter
 from util import segregation_index, calculate_segregation_index, dissimilarity_index, \
-    calculate_collective_utility, get_counts_util
+    calculate_collective_utility, calculate_res_collective_utility, get_counts_util
 
 from Agents import SchoolAgent, NeighbourhoodAgent, HouseholdAgent
 
@@ -104,9 +104,10 @@ class SchoolModel(Model):
     def __init__(self, height=100, width=100, density=0.9, num_neighbourhoods=16, schools_per_neighbourhood=2,minority_pc=0.5, f0=0.6,f1=0.6,\
                  M0=0.8,M1=0.8,T=0.75,
                  alpha=0.5, temp=1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
-                 residential_steps=70,schelling=False,bounded=True,
+                 residential_steps=20,schelling=False,bounded=True,
                  residential_moves_per_step=2000, school_moves_per_step =2000,radius=6,proportional = False,
-                 torus=False,fs="eq", extended_data = False, school_pos=None, agents=None, sample=4, variable_f=True, sigma=0.35, displacement=8 ):
+                 torus=False,fs="eq", extended_data = False, school_pos=None, agents=None, sample=1, variable_f=True, sigma=0.5, displacement=4,
+                 pow=1):
 
 
         # Options  for the model
@@ -115,12 +116,12 @@ class SchoolModel(Model):
         print("h x w",height, width)
         self.density = float(density)
         #self.num_schools= num_schools
-        self.f = [f0,f1]
+        self.f = [float(f0),float(f1)]
         self.M = [M0,M1]
         self.residential_steps = int(residential_steps)
         self.minority_pc = minority_pc
         self.bounded = bounded
-        self.cap_max=cap_max
+        self.cap_max=float(cap_max)
         self.T = T
         self.radius = radius
         self.household_types = [0, 1] # majority, minority, important !!
@@ -132,7 +133,7 @@ class SchoolModel(Model):
         self.variable_f = variable_f
         self.sigma = float(sigma)
         self.fs = fs
-
+        self.pow = pow
 
 
         # choice parameters
@@ -174,6 +175,7 @@ class SchoolModel(Model):
         self.res_seg_index = 0
         self.residential_segregation = 0
         self.collective_utility = 0
+        self.collective_res_utility = 0
         self.comp0,self.comp1,self.comp2,self.comp3,self.comp4,self.comp5,self.comp6,self.comp7, \
         self.comp8, self.comp9, self.comp10, self.comp11, self.comp12, self.comp13, self.comp14, self.comp15 = 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
         self.satisfaction = []
@@ -240,7 +242,7 @@ class SchoolModel(Model):
         #for i in range(self.num_schools):i
         i=0
         while len(self.neighbourhoods)<self.num_neighbourhoods:
-
+            n_school_pos=[0,0,0,0]
             if self.symmetric_positions or self.school_pos:
                 x = int(neighbourhood_positions[i][0])
                 y = int(neighbourhood_positions[i][1])
@@ -257,6 +259,11 @@ class SchoolModel(Model):
             if schools_per_neighbourhood ==2:
                 pos3 = (x-displacement,y-displacement)
                 pos2 = (x+displacement,y+displacement)
+            if schools_per_neighbourhood == 4:
+                n_school_pos[0] = (x - displacement, y - displacement)
+                n_school_pos[1] = (x + displacement, y + displacement)
+                n_school_pos[2] = (x - displacement, y + displacement)
+                n_school_pos[3] = (x + displacement, y - displacement)
 
             do_not_use = self.school_locations + self.neighbourhood_locations
             #if (pos not in do_not_use) and (pos2 not in do_not_use ) and (pos3 not in do_not_use ):
@@ -276,6 +283,15 @@ class SchoolModel(Model):
                     self.grid.place_agent(school, school.unique_id)
                     self.schools.append(school)
                     self.schedule.add(school)
+
+                if self.schools_per_neigh == 4:
+                    # Add another school
+                    for si in range(0,self.schools_per_neigh):
+                        self.school_locations.append( n_school_pos[si])
+                        school = SchoolAgent(n_school_pos[si], self)
+                        self.grid.place_agent(school, school.unique_id)
+                        self.schools.append(school)
+                        self.schedule.add(school)
 
 
                 self.neighbourhood_locations.append(pos)
@@ -355,7 +371,7 @@ class SchoolModel(Model):
 
         self.set_positions_to_school()
         self.set_positions_to_neighbourhood()
-        self.calculate_all_distances()
+        self.calculate_all_distances_to_schools()
         self.calculate_all_distances_to_neighbourhoods()
 
 
@@ -379,7 +395,7 @@ class SchoolModel(Model):
 
         self.pi_jm = np.zeros(shape=(len(self.school_locations),len(self.household_types )))
         self.local_compositions =  np.zeros(shape=(len(self.school_locations),len(self.household_types )))
-        self.avg_school_size = round(density*width*height/(len(self.schools)))
+        self.avg_school_size = int(round(density*width*height/(len(self.schools))))
 
         if self.extended_data:
             self.datacollector = DataCollector(
@@ -387,11 +403,11 @@ class SchoolModel(Model):
                                      lambda m: m.schedule.get_agent_count(), "seg_index": "seg_index",
                                  "residential_segregation": "residential_segregation", "res_seg_index":  "res_seg_index","fixed_res_seg_index":"fixed_res_seg_index",
                                  "happy": "happy", "percent_happy": "percent_happy",
-                                 "total_moves": "total_moves", "compositions0": "compositions0",
+                                 "total_moves": "total_moves", "res_moves": "res_moves", "compositions0": "compositions0",
                                  "compositions1": "compositions1",
                                          "comp0": "comp0", "comp1": "comp1", "comp2": "comp2", "comp3": "comp3", "comp4": "comp4", "comp5": "comp5", "comp6": "comp6",
                                  "comp7": "comp7","compositions": "compositions",
-                                 "collective_utility":"collective_utility"
+                                 "collective_utility":"collective_utility", "collective_res_utility":"collective_res_utility"
                                  },
                 agent_reporters={"local_composition": "local_composition", "type": lambda a: a.type,
                                  "id": lambda a: a.unique_id,
@@ -434,11 +450,13 @@ class SchoolModel(Model):
             segregation_index(self)
         #
 
+
         print("height = %d; width = %d; density = %.2f; num_schools = %d; minority_pc =  %.2f; "
               "f0 =  %.2f; f1 =  %.2f; M0 =  %.2f; M1 =  %.2f;\
-        alpha =  %.2f; temp =  %.2f; cap_max =  %.2f; move = %s; symmetric_positions = %s; bounded = %s; radius = %d ; schelling= %s"%(height,
+        alpha =  %.2f; temp =  %.2f; cap_max =  %.2f; move = %s"%(height,
          width, density, self.num_schools,minority_pc,f0,f1, M0,M1,alpha,
-                                       temp, cap_max, move, symmetric_positions,bounded, radius, schelling ) )# Options  for the model
+                                       temp, cap_max, move))
+        #, move, symmetric_positions,bounded, radius, schelling ) )# Options  for the model
 
 
 
@@ -451,26 +469,34 @@ class SchoolModel(Model):
 
 
 
-    def calculate_all_distances(self):
+    def calculate_all_distances_to_schools(self):
         """
+        1. Update the household.Dij distance to school matrix after agents have moved
+        2. Add new students to the school neighbourhood
+        This is only required at the end of every step of the model because
+            1. neighbourhood students are used in the segregation metrics
+            2. each agent only moves once
 
-        calculate distance between school and household
-        Euclidean or gis shortest road route
+
+        TODO: better to just keep a matrix which maps positions to schools instead of households to schools
         :return: dist
 
         """
+
+        for school in self.schools:
+            school.neighbourhood_students = []
 
         Dij = distance.cdist(np.array(self.household_locations), np.array(self.school_locations), 'euclidean')
 
         for household_index, household in enumerate(self.households):
             Dj = Dij[household_index,:]
-            household.Dj = Dj
+            household.update_distance_to_schools(Dj)
 
             # Calculate distances of the schools - define the school-neighbourhood and compare
             # closer_school = household.schools[np.argmin(household.)]
             closer_school_index = np.argmin(household.Dj)
             household.closer_school = self.schools[closer_school_index]
-            household.closer_school.neighbourhood_students.append(household)
+            household.closer_school.update_school_neighbourhood_students(household)
 
         return(Dij)
 
@@ -638,7 +664,7 @@ class SchoolModel(Model):
 
         # Once residential steps are done calculate school distances
 
-        if self.schedule.steps <= self.residential_steps or self.schedule.steps ==1 :
+        if self.schedule.steps <= self.residential_steps or self.schedule.steps in [0,1]  :
             # during the residential steps keep recalculating the school neighbourhood compositions
             # this is required for the neighbourhoods metric
 
@@ -657,26 +683,16 @@ class SchoolModel(Model):
                 self.household_locations.append(household.pos)
 
 
-            self.calculate_all_distances()
+            self.calculate_all_distances_to_schools()
             self.calculate_all_distances_to_neighbourhoods()
             #print("all", self.calculate_all_distances()[i, :])
-
-            # for i, household in enumerate(self.households):
-            #     print(household.calculate_distances())
-            #     # Calculate distances of the schools - define the school-neighbourhood and compare
-            #     # closer_school = household.schools[np.argmin(household.)]
-            #     closer_school_index = np.argmin(household.Dj)
-            #     household.closer_school = self.schools[closer_school_index]
-            #     household.closer_school.neighbourhood_students.append(household)
-            #
-            #     # Initialize house allocation to school
-            #     #household.move_school(closer_school_index, self.schools[closer_school_index])
-            #
 
 
             self.residential_segregation = segregation_index(self, unit="neighbourhood")
             self.res_seg_index = segregation_index(self, unit="agents_neighbourhood")
             self.fixed_res_seg_index = segregation_index(self, unit="fixed_agents_neighbourhood", radius=1)
+            self.school_neighbourhood_seg_index= segregation_index(self, unit="school_neighbourhood")
+
             res_satisfaction = np.mean(self.res_satisfaction)
 
 
@@ -689,15 +705,24 @@ class SchoolModel(Model):
             self.seg_index = segregation_index(self)
             satisfaction = np.mean(self.satisfaction)
 
+            self.calculate_all_distances_to_schools()
+
+
+
+        else:
+            self.collective_res_utility = calculate_res_collective_utility(self)
+
+
 
 
         print("seg_index", "%.2f"%(self.seg_index), "var_res_seg", "%.2f"%(self.res_seg_index), "neighbourhood",
               "%.2f"%(self.residential_segregation), "fixed_res_seg_index","%.2f"%(self.fixed_res_seg_index), \
               "res_satisfaction %.2f" %res_satisfaction,"satisfaction %.2f" %satisfaction,\
+              "school_neighbourhood %.2f" %self.school_neighbourhood_seg_index,\
               "average_like_fixed %.2f"%self.average_like_fixed,"average_like_var %.2f"%self.average_like_variable  )
 
 
-        if self.happy == self.schedule.get_agent_count():
+        if self.happy == self.schedule.get_agent_count() or self.schedule.steps>200:
             self.running = False
 
 

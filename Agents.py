@@ -65,6 +65,18 @@ class SchoolAgent(Agent):
 
 
 
+    def update_school_neighbourhood_students(self, household):
+        """
+        Add a new student to the school neighbourhood students
+
+        :param household: the new household to add to the school neighbourhood
+        :return: None
+        """
+
+        self.neighbourhood_students.append(household)
+
+
+
     def get_local_school_composition(self):
         """
         Gets composition of the school, number of agents allocated to the school for each type
@@ -97,6 +109,9 @@ class SchoolAgent(Agent):
         #print("step ",self.model.schedule.steps," neighb students ",len(self.neighbourhood_students))
 
         return (local_neighbourhood_composition)
+
+
+
 
 
 
@@ -202,12 +217,15 @@ class HouseholdAgent(Agent):
 
 
     Non-static :
-    dist_to_school :
+    dist_to_school : float
+        the distance to the current school
     local_composition :
     fixed_local_composition
     variable_local_composition
     closer_school :
-    Dj = []
+
+    Dj : list
+        list holding distance to every school
     school : School Object
         School object the Agent is allocated tO
     pos : (x,y)
@@ -244,7 +262,6 @@ class HouseholdAgent(Agent):
             lower, upper = float(0), float(1)
             mu, sigma = float(model.f[agent_type]), float(model.sigma)
 
-            print("sigma",mu, sigma, lower, upper)
             X = stats.truncnorm(
                 (lower - mu) / sigma, (upper - mu) / sigma, loc=mu, scale=sigma)
             self.f = np.float(X.rvs(1))
@@ -281,25 +298,36 @@ class HouseholdAgent(Agent):
         self.residential_utilities = []
 
 
+    def update_distance_to_schools(self, Dj):
+        """
+        Updates the Dj distance to school matrix of the agent after moving
 
-    def calculate_distances(self, Dij):
-        '''
-        calculate distance between school and household
-        Euclidean or gis shortest road route
-        :return: dist
-        '''
-        Dj = np.zeros((len(self.model.school_locations),1))
-
-        for i, loc in enumerate(self.model.school_locations):
-
-            Dj[i] = np.linalg.norm(np.array(self.pos)- np.array(loc))
+        :param Dj:
+        :return:
+        """
         self.Dj = Dj
 
-        print("calculating distances", Dj)
 
-        closer_school_index = np.argmin(self.Dj)
-        self.closer_school = self.model.schools[closer_school_index]
 
+    #
+    # def calculate_distances(self, Dij):
+    #     '''
+    #     calculate distance between school and household
+    #     Euclidean or gis shortest road route
+    #     :return: dist
+    #     '''
+    #     Dj = np.zeros((len(self.model.school_locations),1))
+    #
+    #     for i, loc in enumerate(self.model.school_locations):
+    #
+    #         Dj[i] = np.linalg.norm(np.array(self.pos)- np.array(loc))
+    #     self.Dj = Dj
+    #
+    #     print("calculating distances", Dj)
+    #
+    #     closer_school_index = np.argmin(self.Dj)
+    #     self.closer_school = self.model.schools[closer_school_index]
+    #
 
 
     def step(self):
@@ -452,6 +480,15 @@ class HouseholdAgent(Agent):
 
 
     def allocate(self, school, dist):
+        """
+        Allocates a student to a school
+        Updates the school with the new student
+        Updates the dist_to_school attribute of the agent
+        :param school: school to allocate new student to
+        :param dist: distance to the school
+        :return:
+        """
+
 
         self.school = school
         school.students.append(self)
@@ -614,7 +651,7 @@ class HouseholdAgent(Agent):
 
 
 
-    def move_school(self, school_index, new_school):
+    def move_school(self, new_school_index, new_school):
 
 
         """
@@ -625,7 +662,7 @@ class HouseholdAgent(Agent):
         """
         # Removes student from current school and allocates to new
         # only do the actually move if it is really a different school otherwise stay
-        if self.model.schools[school_index] != self.school:
+        if self.model.schools[new_school_index] != self.school:
 
 
             self.school.students.remove(self)
@@ -634,9 +671,9 @@ class HouseholdAgent(Agent):
             self.school.get_local_school_composition()
 
             # allocate elsewhere
-            self.allocate(new_school, self.Dj[school_index])
+            self.allocate(new_school, self.Dj[new_school_index])
 
-            # now update the new school
+            # now update the new school - self.school is the new school
             self.school.get_local_school_composition()
 
             self.model.total_moves +=1
@@ -685,7 +722,7 @@ class HouseholdAgent(Agent):
 
         P = self.ethnic_utility(x=x,p=p, f=self.fs,schelling =self.schelling)
 
-        D = (self.model.max_dist - dist) / self.model.max_dist
+        D = (self.model.max_dist - dist)**self.model.pow / (self.model.max_dist**self.model.pow)
         #print("D", D)
         U = P**(self.model.alpha) * D**(1-self.model.alpha)
         #print("P,D,U",P,D,U)

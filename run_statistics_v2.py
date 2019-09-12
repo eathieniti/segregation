@@ -11,13 +11,21 @@ import glob
 import os
 import multiprocessing
 import time
-from params import *
+from params_copy import *
 start_time = time.time()
 import json
+import argparse
 
 
 
-def get_filename_pattern(params):
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--params', help='parameters file')
+parser.add_argument('--test', help='run minimum steps to test the file')
+args = parser.parse_args()
+test = args.test
+
+def get_filename_pattern():
     fs_print = fs
     if fs_print=="eq":
         fs_print= 0
@@ -157,17 +165,19 @@ fs="eq"
 
 
 # test
-all_f0_f1 = [0.7]
+#all_f0_f1 = [0.7]
 n_repeats = 1
 # test
-#n_repeats=1
-
-
+n_repeats=4
+if test:
+    n_repeats=1
+    all_f0_f1 = [0.5]
+    num_steps=1
 
 
 for i in range(0,n_repeats):
 
-    for temp in [0.5,0.1,0.01]:
+    #for temp in [0.5,0.1,0.01]:
     #for alpha in [0.9, 0.8,0.7,0.4]:
     #for density in [0.85,0.9,0.95]:
     #for radius in [3,6,7,9,11]:
@@ -175,11 +185,13 @@ for i in range(0,n_repeats):
     #for T in [0.65,0.75,0.7,0.8,0.65]:
 
     #for displacement in [4,8]:
-    #for cap_max in [  2,1.5,1.1,1.5,1.1,1.5]:
+    #for cap_max in [2,1.5,1.01]:
+    for sigma in [0.1,0.2]:
         for ii in range(0,3):
             residential_steps=80;
-            # test
-            # residential_steps=2;
+
+            if test:
+                residential_steps=1;
             total_steps =residential_steps+num_steps
             max_steps=total_steps
     

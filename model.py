@@ -23,12 +23,12 @@ class SchoolModel(Model):
     Model class for the Schelling segregation model.
     '''
 
-    def __init__(self, height=100, width=100, density=0.95, num_schools=64,minority_pc=0.5, homophily=3, f0=0.6,f1=0.6,\
+    def __init__(self, height=100, width=100, density=0.95, num_schools=64,minority_pc=0.5, f0=0.6,f1=0.6,\
                  M0=0.8,M1=0.8,T=0.75,
                  alpha=0.2, temp=0.1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
                  residential_steps=30,schelling=False,bounded=False,
                  residential_moves_per_step=2000, school_moves_per_step = 2000,radius=3,proportional = False,
-                 torus=False,fs="eq", extended_data = False, school_pos=None, agents=None, sample=5 ):
+                 torus=False,fs="eq", extended_data = False, school_pos=None, agents=None, sample=5, pow=1 ):
         '''
         '''
         # Options  for the model
@@ -51,7 +51,7 @@ class SchoolModel(Model):
         self.school_pos = school_pos
         self.extended_data = extended_data
         self.sample = sample
-        self.pow = 4
+        self.pow = pow
 
         if fs!="eq":
             self.fs = fs

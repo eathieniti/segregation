@@ -418,7 +418,7 @@ class HouseholdAgent(Agent):
         P = self.ethnic_utility(x=x,p=p, f=self.fs,schelling =self.schelling)
 
 
-        D = (self.model.max_dist - dist) / self.model.max_dist
+        D = (self.model.max_dist - dist)**self.model.pow / (self.model.max_dist ** self.model.pow)
         #print("D", D)
         U = P**(self.model.alpha) * D**(1-self.model.alpha)
         #print("P,D,U",P,D,U)

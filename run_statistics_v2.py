@@ -15,15 +15,19 @@ from params_copy import *
 start_time = time.time()
 import json
 import argparse
-
+import cProfile
 
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--params', help='parameters file')
 parser.add_argument('--test', help='run minimum steps to test the file')
+parser.add_argument('--profile', help='Profile code and write stats in a file')
+parser.add_argument('--run_once', help='Run one f value only')
+
 args = parser.parse_args()
-test = args.test
+test = args.test; profile=args.profile
+run_once = args.run_once
 
 def get_filename_pattern():
     fs_print = fs

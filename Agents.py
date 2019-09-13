@@ -260,11 +260,13 @@ class HouseholdAgent(Agent):
         if self.model.variable_f:
             #self.f = np.random.normal(model.f[agent_type], model.sigma)
             lower, upper = float(0), float(1)
+            #lower, upper= 0, model.f[agent_type]
             mu, sigma = float(model.f[agent_type]), float(model.sigma)
 
             X = stats.truncnorm(
                 (lower - mu) / sigma, (upper - mu) / sigma, loc=mu, scale=sigma)
             self.f = np.float(X.rvs(1))
+
 
         else:
             self.f = model.f[agent_type]

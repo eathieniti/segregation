@@ -12,6 +12,8 @@ from collections import Counter
 from util import segregation_index, calculate_segregation_index, dissimilarity_index, \
     calculate_collective_utility, calculate_res_collective_utility, get_counts_util
 
+
+import sys
 from Agents import SchoolAgent, NeighbourhoodAgent, HouseholdAgent
 
 print("mesa",mesa.__file__)
@@ -101,12 +103,12 @@ class SchoolModel(Model):
     """
 
 
-    def __init__(self, height=100, width=100, density=0.9, num_neighbourhoods=16, schools_per_neighbourhood=2,minority_pc=0.5, f0=0.6,f1=0.6,\
+    def __init__(self, height=100, width=100, density=0.9, num_neighbourhoods=64, schools_per_neighbourhood=1,minority_pc=0.5, f0=0.6,f1=0.6,\
                  M0=0.8,M1=0.8,T=0.75,
-                 alpha=0.5, temp=1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
-                 residential_steps=70,schelling=False,bounded=False,
+                 alpha=0.2, temp=1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
+                 residential_steps=20,schelling=False,bounded=False,
                  residential_moves_per_step=2000, school_moves_per_step =2000,radius=6,proportional = False,
-                 torus=False,fs="eq", extended_data = False, school_pos=None, agents=None, sample=5, variable_f=True, sigma=0.1, displacement=4,
+                 torus=False,fs="eq", extended_data = False, school_pos=None, agents=None, sample=5, variable_f=False, sigma=0.1, displacement=4,
                  pow=1):
 
 
@@ -724,6 +726,7 @@ class SchoolModel(Model):
 
         if self.happy == self.schedule.get_agent_count() or self.schedule.steps>200:
             self.running = False
+            sys.exit()
 
 
 

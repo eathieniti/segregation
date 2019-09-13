@@ -157,8 +157,17 @@ def schelling_draw(agent):
             portrayal["Color"] = school_colors[agent.unique_id]
             portrayal["stroke_color"] = ["#000000", "#000000"]
         else:
-            portrayal["stroke_color"] = ["white", "white"]
-            portrayal["Color"] = ["white", "white"]
+            portrayal["stroke_color"] = ["yellow", "yellow"]
+            portrayal["Color"] = ["yellow", "yellow"]
+
+    elif agent.type == 4:
+        portrayal["Layer"] = 2
+        print(agent.unique_id)
+        portrayal["Shape"] = "circle"
+        portrayal["r"] = 1
+
+        portrayal["stroke_color"] = ["pink", "pink"]
+        portrayal["Color"] = ["pink", "pink"]
 
 
     #print(agent.type,portrayal)
@@ -189,13 +198,14 @@ model_params = {
     "width": width,
     "density": UserSettableParameter("slider", "Agent density", 0.90, 0.1, 1.0, 0.01),
     "minority_pc": UserSettableParameter("slider", "Fraction minority", 0.5, 0.00, 1.0, 0.05),
-    "f0": UserSettableParameter("slider", "f0", 0.70, 0.1,0.9,0.05),
-    "f1": UserSettableParameter("slider", "f1",0.70, 0.1, 0.9, 0.05),
+    "f0": UserSettableParameter("slider", "f0", 0.65, 0.1,0.9,0.05),
+    "f1": UserSettableParameter("slider", "f1",0.65, 0.1, 0.9, 0.05),
     "M0": UserSettableParameter("slider", "M0", 0.8, 0.1, 1, 0.1),
     "M1": UserSettableParameter("slider", "M1", 0.8, 0.1, 1, 0.1),
-    "cap_max": UserSettableParameter("slider", "max capacity", 1.01, 1.0, 5, 0.1),
-    "alpha": UserSettableParameter("slider", "alpha", 0.2, 0.0, 1.0, 0.1),
-    "temp": UserSettableParameter("slider", "temp", 0.1, 0.0, 0.9, 0.1)
+    "cap_max": UserSettableParameter("slider", "max capacity", 1.5, 1.0, 5, 0.1),
+    "alpha": UserSettableParameter("slider", "alpha", 0.2, 0.01, 1.0, 0.1),
+    "temp": UserSettableParameter("slider", "temp", 0.001, 0.0, 0.9, 0.1),
+    "T": UserSettableParameter("slider", "T", 0.75, 0.1, 0.9, 0.1)
 }
 
 server = ModularServer(SchoolModel,

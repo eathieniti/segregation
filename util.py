@@ -27,6 +27,7 @@ def segregation_index(model, unit = "school" , radius=1):
             pi_jm[s_ind][:] = local_composition / np.sum(local_composition)
 
 
+    # this only makes sense in the bounded model 
     elif unit == "neighbourhood":
         for s_ind, neighbourhood in enumerate(model.neighbourhoods):
             local_composition = neighbourhood.get_local_neighbourhood_composition()

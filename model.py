@@ -278,11 +278,11 @@ class SchoolModel(Model):
                                      lambda m: m.schedule.get_agent_count(), "seg_index": "seg_index",
                                  "residential_segregation": "residential_segregation", "res_seg_index":  "res_seg_index","fixed_res_seg_index":"fixed_res_seg_index",
                                  "happy": "happy", "percent_happy": "percent_happy",
-                                 "total_moves": "total_moves", "compositions0": "compositions0",
+                                 "total_moves": "total_moves", "res_moves": "res_moves", "compositions0": "compositions0",
                                  "compositions1": "compositions1",
                                          "comp0": "comp0", "comp1": "comp1", "comp2": "comp2", "comp3": "comp3", "comp4": "comp4", "comp5": "comp5", "comp6": "comp6",
                                  "comp7": "comp7","compositions": "compositions",
-                                 "collective_utility":"collective_utility"
+                                 "collective_utility":"collective_utility", "collective_res_utility":"collective_res_utility"
                                  },
                 agent_reporters={"local_composition": "local_composition", "type": lambda a: a.type,
                                  "id": lambda a: a.unique_id,
@@ -401,7 +401,6 @@ class SchoolModel(Model):
             self.household_locations = []
             for i, household in enumerate(self.households):
                 self.household_locations.append(household.pos)
-                household.residential_utilities = []
 
 
             self.calculate_all_distances()

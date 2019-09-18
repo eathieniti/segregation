@@ -426,27 +426,53 @@ class HouseholdAgent(Agent):
         x = 0 # like neighbours
         y = 0 # unlike neighbours
 
+        x_c, y_c = 0,0
+
         if bounded:
+            # composition = self.model.get_closer_neighbourhood_from_position(position).get_local_neighbourhood_composition()
+            # #print("neighbourhood comp ", composition)
+            # for type in [0,1]:
+            #     if type == self.type:
+            #         x = composition[type]
+            #     else:
+            #         y = composition[type]
+            #
+
+
+            # neighbours = self.model.grid.get_neighbors(position, moore=True, radius=radius)
+            # for neighbour in neighbours:
+            #     if isinstance(neighbour, HouseholdAgent):
+            #         if neighbour.type == self.type:
+            #             x += 1
+            #         else:
+            #             y += 1
+            # #print('x,y,',x,y)
+
+
             composition = self.model.get_closer_neighbourhood_from_position(position).get_local_neighbourhood_composition()
-            #print("neighbourhood comp ", composition)
-            for type in [0,1]:
+            # print("neighbourhood comp ", composition)
+            for type in [0, 1]:
                 if type == self.type:
-                    x = composition[type]
+                    x_b = composition[type]
                 else:
-                    y = composition[type]
-
-
-
-        else:
+                    y_b = composition[type]
 
             neighbours = self.model.grid.get_neighbors(position, moore=True, radius=radius)
             for neighbour in neighbours:
                 if isinstance(neighbour, HouseholdAgent):
                     if neighbour.type == self.type:
-                        x += 1
+                        x_c += 1
                     else:
-                        y += 1
-            #print('x,y,',x,y)
+                        y_c += 1
+
+            x = np.int(x_b*0.02 + x_c)
+            y = np.int(y_b*0.02 + y_c)
+
+            # print(x_b,x_c,x)
+            # print(y_b,y_c,y)
+            # print(x_b/(x_b+y_b),x_c/(x_c+y_c),x/(x+y))
+
+
 
         return(x, y)
 

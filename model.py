@@ -103,12 +103,12 @@ class SchoolModel(Model):
     """
 
 
-    def __init__(self, height=100, width=100, density=0.9, num_neighbourhoods=64, schools_per_neighbourhood=1,minority_pc=0.5, f0=0.6,f1=0.6,\
+    def __init__(self, height=100, width=100, density=0.9, num_neighbourhoods=16, schools_per_neighbourhood=1,minority_pc=0.5, f0=0.6,f1=0.6,\
                  M0=0.8,M1=0.8,T=0.75,
-                 alpha=0.2, temp=1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
-                 residential_steps=20,schelling=False,bounded=False,
-                 residential_moves_per_step=2000, school_moves_per_step =2000,radius=6,proportional = False,
-                 torus=False,fs="eq", extended_data = False, school_pos=None, agents=None, sample=5, variable_f=False, sigma=0.1, displacement=4,
+                 alpha=0.8, temp=1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
+                 residential_steps=50,schelling=False,bounded=True,
+                 residential_moves_per_step=2000, school_moves_per_step =2000,radius=3,proportional = False,
+                 torus=False,fs="eq", extended_data = False, school_pos=None, agents=None, sample=7, variable_f=True, sigma=0.1, displacement=4,
                  pow=1):
 
 

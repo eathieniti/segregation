@@ -376,7 +376,7 @@ class HouseholdAgent(Agent):
                 U = self.get_school_satisfaction(self.school, self.dist_to_school)
                 self.model.satisfaction.append(U)
 
-            # If unhappy, compared to threshold move:
+                # If unhappy, compared to threshold move:
                 if U < self.T:
                     #print('unhappy')
                     self.evaluate_move(U, school=True)
@@ -386,7 +386,7 @@ class HouseholdAgent(Agent):
                     if self.model.total_considered>0:
                         self.model.percent_happy = np.ma(self.model.happy/self.model.total_considered)
 
-
+                self.model.total_considered += 1
 
 
     def get_res_satisfaction(self, position):
@@ -573,6 +573,7 @@ class HouseholdAgent(Agent):
 
 
             proportional_probs = utilities / np.sum(utilities)
+            print(proportional_probs)
             index_to_move = np.random.choice(len(proportional_probs), p=proportional_probs)
 
 

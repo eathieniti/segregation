@@ -384,7 +384,7 @@ class HouseholdAgent(Agent):
                 else:
                     self.model.happy += 1
                     if self.model.total_considered>0:
-                        self.model.percent_happy = np.ma(self.model.happy/self.model.total_considered)
+                        self.model.percent_happy = np.nan_to_num(self.model.happy/self.model.total_considered)
 
                 self.model.total_considered += 1
 
@@ -465,8 +465,9 @@ class HouseholdAgent(Agent):
                     else:
                         y_c += 1
 
-            x = np.int(x_b*0.02 + x_c)
-            y = np.int(y_b*0.02 + y_c)
+            b_ef = (self.model.radius**2) /  (self.model.n_radius**2) * self.model.b
+            x = np.int(x_b * b_ef + x_c * (1-b_ef))
+            y = np.int(y_b * b_ef + y_c * (1-b_ef))
 
             # print(x_b,x_c,x)
             # print(y_b,y_c,y)

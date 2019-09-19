@@ -105,11 +105,11 @@ class SchoolModel(Model):
 
     def __init__(self, height=100, width=100, density=0.9, num_neighbourhoods=16, schools_per_neighbourhood=1,minority_pc=0.5, f0=0.6,f1=0.6,\
                  M0=0.8,M1=0.8,T=0.75,
-                 alpha=0.8, temp=1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
-                 residential_steps=50,schelling=False,bounded=True,
+                 alpha=0.2, temp=1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
+                 residential_steps=100,schelling=False,bounded=True,
                  residential_moves_per_step=2000, school_moves_per_step =2000,radius=3,proportional = False,
-                 torus=False,fs="eq", extended_data = False, school_pos=None, agents=None, sample=7, variable_f=True, sigma=0.1, displacement=4,
-                 pow=1):
+                 torus=False,fs="eq", extended_data = False, school_pos=None, agents=None, sample=4, variable_f=True, sigma=0.1, displacement=4,
+                 pow=1, b=0.2):
 
 
         # Options  for the model
@@ -136,7 +136,7 @@ class SchoolModel(Model):
         self.sigma = float(sigma)
         self.fs = fs
         self.pow = pow
-
+        self.b = b
 
         # choice parameters
         self.alpha = alpha
@@ -193,6 +193,8 @@ class SchoolModel(Model):
             self.max_dist = self.height/np.sqrt(2)
         else:
             self.max_dist = self.height*np.sqrt(2)
+
+        self.n_radius = height / (np.sqrt(num_neighbourhoods)  * 2)
 
 
 

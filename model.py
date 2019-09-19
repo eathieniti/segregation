@@ -109,7 +109,7 @@ class SchoolModel(Model):
                  residential_steps=50,schelling=False,bounded=True,
                  residential_moves_per_step=2000, school_moves_per_step =2000,radius=3,proportional = False,
                  torus=False,fs="eq", extended_data = False, school_pos=None, agents=None, sample=7, variable_f=True, sigma=0.1, displacement=4,
-                 pow=1):
+                 pow=1,b=0.02):
 
 
         # Options  for the model
@@ -136,7 +136,7 @@ class SchoolModel(Model):
         self.sigma = float(sigma)
         self.fs = fs
         self.pow = pow
-
+        self.b = b
 
         # choice parameters
         self.alpha = alpha
@@ -425,7 +425,7 @@ class SchoolModel(Model):
                                  "residential_segregation": "residential_segregation", "res_seg_index": "res_seg_index",
                                  "fixed_res_seg_index": "fixed_res_seg_index",
                                  "happy": "happy", "percent_happy": "percent_happy",
-                                 "total_moves": "total_moves", "compositions0": "compositions0",
+                                 "total_moves": "total_moves",  "res_moves": "res_moves","compositions0": "compositions0",
                                  "compositions1": "compositions1",
                                  "comp0": "comp0", "comp1": "comp1", "comp2": "comp2", "comp3": "comp3",
                                  "comp4": "comp4", "comp5": "comp5", "comp6": "comp6",

@@ -465,8 +465,9 @@ class HouseholdAgent(Agent):
                     else:
                         y_c += 1
 
-            x = np.int(x_b*self.model.b + x_c)
-            y = np.int(y_b*self.model.b + y_c)
+            b_ef = (self.model.radius**2) /  (self.model.n_radius**2) * self.model.b
+            x = np.int(x_b * b_ef + x_c * (1-b_ef))
+            y = np.int(y_b * b_ef + y_c * (1-b_ef))
 
             # print(x_b,x_c,x)
             # print(y_b,y_c,y)

@@ -105,11 +105,11 @@ class SchoolModel(Model):
 
     def __init__(self, height=100, width=100, density=0.9, num_neighbourhoods=16, schools_per_neighbourhood=1,minority_pc=0.5, f0=0.6,f1=0.6,\
                  M0=0.8,M1=0.8,T=0.75,
-                 alpha=0.2, temp=1, cap_max=1.01, move="proportional", symmetric_positions=True,
+                 alpha=1, temp=1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
                  residential_steps=100,schelling=False,bounded=True,
                  residential_moves_per_step=2000, school_moves_per_step =2000,radius=3,proportional = False,
-                 torus=False,fs="eq", extended_data = False, school_pos=None, agents=None, sample=4, variable_f=True, sigma=0.1, displacement=4,
-                 pow=1, b=0.2):
+                 torus=False,fs="eq", extended_data = False, school_pos=None, agents=None, sample=4, variable_f=True, sigma=0.5, displacement=4,
+                 pow=1, b=1):
 
 
         # Options  for the model
@@ -396,6 +396,8 @@ class SchoolModel(Model):
         self.local_compositions =  np.zeros(shape=(len(self.school_locations),len(self.household_types )))
         self.avg_school_size = int(round(density*width*height/(len(self.schools))))
 
+
+        # TODO: fix the composition of schools data collector
         if self.extended_data:
             self.datacollector = DataCollector(
                 model_reporters={"agent_count":
@@ -452,10 +454,10 @@ class SchoolModel(Model):
 
         print("height = %d; width = %d; density = %.2f; num_schools = %d; minority_pc =  %.2f; "
               "f0 =  %.2f; f1 =  %.2f; M0 =  %.2f; M1 =  %.2f;\
-        alpha =  %.2f; temp =  %.2f; cap_max =  %.2f; move = %s"%(height,
+        alpha =  %.2f; temp =  %.2f; cap_max =  %.2f; move = %s, symmetric_positions = %s, bounded = %s, radius = %d, schelling = %s"%(height,
          width, density, self.num_schools,minority_pc,f0,f1, M0,M1,alpha,
-                                       temp, cap_max, move))
-        #, move, symmetric_positions,bounded, radius, schelling ) )# Options  for the model
+                                       temp, cap_max, move, symmetric_positions,bounded, radius, schelling ) )
+              # Options  for the model
 
 
 

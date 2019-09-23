@@ -558,12 +558,16 @@ class HouseholdAgent(Agent):
         boltzmann_probs = []
         proportional_probs = []
 
+        if self.model.move == "deterministic":
+            proportional_probs = utilities / np.sum(utilities)
+           
+            index_to_move = np.argmax(np.array(proportional_probs))
+        
 
         if self.model.move == "proportional":
-
-
+            np.nan_to_num(utilities, copy=False)
+            
             proportional_probs = utilities / np.sum(utilities)
-            #print(proportional_probs)
             index_to_move = np.random.choice(len(proportional_probs), p=proportional_probs)
 
 

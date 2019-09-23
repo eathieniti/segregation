@@ -424,7 +424,7 @@ class SchoolModel(Model):
                                  "residential_segregation": "residential_segregation", "res_seg_index": "res_seg_index",
                                  "fixed_res_seg_index": "fixed_res_seg_index",
                                  "happy": "happy", "percent_happy": "percent_happy",
-                                 "total_moves": "total_moves", "compositions0": "compositions0",
+                                 "total_moves": "total_moves",  "res_moves": "res_moves","compositions0": "compositions0",
                                  "compositions1": "compositions1",
                                  "comp0": "comp0", "comp1": "comp1", "comp2": "comp2", "comp3": "comp3",
                                  "comp4": "comp4", "comp5": "comp5", "comp6": "comp6",

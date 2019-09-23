@@ -479,7 +479,7 @@ class HouseholdAgent(Agent):
 
 
 
-    def get_local_neighbourhood_composition(self, position, radius, bounded=False):
+    def get_local_neighbourhood_composition(self, position, radius):
         """
 
         :param position:
@@ -489,16 +489,10 @@ class HouseholdAgent(Agent):
         """
 
         # this is not really a duplicate of the above function
-        #
+        # used for the agents variable segregation measure
+        # therefore returns type 1 type 2 neighbours and not just like/unlike
         # warning: for now only suitable for 2 gropups
-        type1 = 0
-        type2 = 0
-        # bounded not working yet
-        # local_composition[agent_type]
-        # if bounded:
-        #     x, y = self.get_closer_school().get_local_neighbourhood_composition()
-        #
-        # else:
+
 
         neighbours = self.model.grid.get_neighbors(position, moore=True, radius=radius)
 
@@ -564,11 +558,6 @@ class HouseholdAgent(Agent):
         boltzmann_probs = []
         proportional_probs = []
 
-        if self.model.move == "deterministic":
-            proportional_probs = utilities / np.sum(utilities)
-
-            index_to_move = np.argmax(np.array(proportional_probs))
-
 
         if self.model.move == "proportional":
 
@@ -578,12 +567,8 @@ class HouseholdAgent(Agent):
             index_to_move = np.random.choice(len(proportional_probs), p=proportional_probs)
 
 
-        elif self.model.move == "random":
-
-            index_to_move = random.randint(0, len(utilities)-1)
-
-
         elif self.model.move == "boltzmann":
+            # at high T this is greedy, at low T=0 this is random
             for U_candidate in utilities:
          
                 boltzmann_probs.append(self.get_boltzman_probability(U, U_candidate))

@@ -105,7 +105,7 @@ class SchoolModel(Model):
 
     def __init__(self, height=100, width=100, density=0.9, num_neighbourhoods=16, schools_per_neighbourhood=1,minority_pc=0.5, f0=0.6,f1=0.6,\
                  M0=0.8,M1=0.8,T=0.75,
-                 alpha=0.2, temp=1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
+                 alpha=0.2, temp=1, cap_max=1.01, move="proportional", symmetric_positions=True,
                  residential_steps=100,schelling=False,bounded=True,
                  residential_moves_per_step=2000, school_moves_per_step =2000,radius=3,proportional = False,
                  torus=False,fs="eq", extended_data = False, school_pos=None, agents=None, sample=4, variable_f=True, sigma=0.1, displacement=4,
@@ -218,15 +218,10 @@ class SchoolModel(Model):
             sys.exit()
 
 
-        # otherwise calculate the positions
+        # otherwise calculate the positions, place them symmetrically on the grid
         else:
             if self.num_neighbourhoods == 4:
                 neighbourhood_positions = [(width/4,height/4),(width*3/4,height/4),(width/4,height*3/4),(width*3/4,height*3/4)]
-            elif self.num_neighbourhoods == 9:
-                n=6
-                neighbourhood_positions = [(width/n,height/n),(width*3/n,height*1/n),(width*5/n,height*1/n),(width/n,height*3/n),\
-                                    (width*3/n,height*3/n),(width*5/n,height*3/n),(width*1/n,height*5/n),(width*3/n,height*5/n),\
-                                    (width*5/n,height*5/n)]
 
             elif self.num_neighbourhoods in [25, 64, 16]:
                 neighbourhood_positions = []
@@ -254,6 +249,7 @@ class SchoolModel(Model):
                 #print(x,y)
 
             else:
+                # For the randomly placed schools place with an offset of at least 2 from the margins
                 x = random.randrange(start=2,stop=self.grid.width-2)
                 y = random.randrange(start=2,stop=self.grid.height-2)
 
@@ -349,7 +345,6 @@ class SchoolModel(Model):
 
 
 
-            #print(Dij)
 
             for ind, pos in enumerate(self.household_locations):
 

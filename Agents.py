@@ -574,7 +574,7 @@ class HouseholdAgent(Agent):
 
 
             proportional_probs = utilities / np.sum(utilities)
-            print(proportional_probs)
+            #print(proportional_probs)
             index_to_move = np.random.choice(len(proportional_probs), p=proportional_probs)
 
 

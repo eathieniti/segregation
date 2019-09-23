@@ -23,11 +23,11 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--params', help='parameters file')
 parser.add_argument('--test', help='run minimum steps to test the file')
 parser.add_argument('--profile', help='Profile code and write stats in a file')
-parser.add_argument('--run_once', help='Run one f value only')
+parser.add_argument('--run_one_f', help='Run one f value only', type=float)
 
 args = parser.parse_args()
 test = args.test; profile=args.profile
-run_once = args.run_once
+run_one_f = args.run_one_f
 
 def get_filename_pattern():
     fs_print = fs
@@ -150,8 +150,9 @@ def run_simulation():
 
 
 all_f0_f1 = [0.45,0.55,0.65,0.6,0.7,0.75,0.8,0.85,0.9,0.4,0.5,0.3,0.2]
-if run_once:
-    all_f0_f1=[0.60]
+if run_one_f:
+    all_f0_f1 = [run_one_f]
+    
 
 # test
 # num_steps = 1
@@ -181,19 +182,21 @@ if test:
 
 
 for i in range(0,n_repeats):
-
+   
     #for temp in [0.5,0.1,0.01]:
-    #for alpha in [0.2,0.1,0.3]:
+    #for alpha in [0.2,0.1,0.3,1]:
     #for density in [0.85,0.9,0.95]:
-    #for radius in [3,6,7,9,11]:
+    #for radius in [3,6,9,12]:
     #for fs in [0.3,0.5]:
     #for T in [0.65,0.75,0.8]:
-
+    
     #for displacement in [4,8]:
     #for cap_max in [2,1.5,1.01]:
-    #for sigma in [0.1,0.2]:
-    #alpha=1
-    for b in [1,0.4,0.2]:
+    #for sigma in [0.1,0.3,0.5]:
+    alpha=1
+    #for b in [1,0.4,0.2]:
+    for b in [1]:
+
         for ii in range(0,3):
             residential_steps=80;
 

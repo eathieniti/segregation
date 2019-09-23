@@ -11,13 +11,12 @@ import glob
 import os
 import multiprocessing
 import time
-from params import *
+from params import params
 start_time = time.time()
 import json
 import argparse
 import cProfile
-
-
+import itertools
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--params', help='parameters file')
@@ -29,7 +28,10 @@ args = parser.parse_args()
 test = args.test; profile=args.profile
 run_one_f = args.run_one_f
 
-def get_filename_pattern():
+def get_filename_pattern(factor,num_steps, minority_pc, M0, M1, temp,height,
+        move,symmetric_positions, residential_steps,alpha, density,schelling,
+        school_moves_per_step, residential_moves_per_step, bounded, radius, cap_max, T,fs_print, variable_f,sample,sigma, num_neighbourhoods, schools_per_neighbourhood, displacement,b):
+
     fs_print = fs
     if fs_print=="eq":
         fs_print= 0
@@ -44,7 +46,7 @@ def get_filename_pattern():
     return(filename_pattern)
 
 
-def run_one_simulation(i,f0, return_list):
+def run_one_simulation(i,f0, return_list,params):
 
         """
         Run one simulation of the model and gather the statistics
@@ -57,15 +59,12 @@ def run_one_simulation(i,f0, return_list):
         print(f0)
         segregation_index=[]
         start_time=time.time()
-        model = SchoolModel(height=height, width=width, density=density, minority_pc=minority_pc, f0=f0,f1=f0,M0=M0,T=T,
-                            M1=M1 , alpha=alpha, temp=temp,cap_max=cap_max,
-                           move=move, symmetric_positions=symmetric_positions, residential_steps=residential_steps,
-                            schelling=schelling, bounded=bounded, residential_moves_per_step=residential_moves_per_step,
-                           school_moves_per_step=school_moves_per_step,radius=radius,fs=fs, variable_f=variable_f, sigma=sigma, sample=sample, 
-                           num_neighbourhoods=num_neighbourhoods, schools_per_neighbourhood=schools_per_neighbourhood, displacement=displacement, b=b)
+        model = SchoolModel(**params)
 
         # Stop if it did not change enough the last 70 steps
 
+        total_steps = params['residential_steps'] + num_steps
+        max_steps=total_steps
         while model.running and (model.schedule.steps < total_steps or average_diff>0.05) and model.schedule.steps<max_steps:
             model.step()
             segregation_index.append(model.seg_index)
@@ -86,15 +85,13 @@ def run_one_simulation(i,f0, return_list):
 
         model_out['iter'] = np.repeat(i, length)
         model_out["f0"] = np.repeat(f0, length)
-        model_out["f1"] = np.repeat(f1, length)
-        model_out["alpha"] = np.repeat(alpha, length)
-        model_out["res"]= np.repeat(residential_steps, length)
+        model_out["alpha"] = np.repeat(params['alpha'], length)
+        model_out["res"]= np.repeat(params['residential_steps'], length)
 
         model_out_agents['iter'] = np.repeat(i, length_agents)
         model_out_agents['f0'] = np.repeat(f0, length_agents)
-        model_out_agents['f1'] = np.repeat(f1, length_agents)
-        model_out_agents["alpha"] = np.repeat(alpha, length_agents)
-        model_out_agents["res"] = np.repeat(residential_steps, length_agents)
+        model_out_agents["alpha"] = np.repeat(params['alpha'], length_agents)
+        model_out_agents["res"] = np.repeat(params['residential_steps'], length_agents)
     
         elapsed_time = time.time() - start_time
         print(elapsed_time)
@@ -103,13 +100,13 @@ def run_one_simulation(i,f0, return_list):
 
 
 
-def run_simulation():
+def run_simulation(params):
     """
     Run the model for multiple f0 and concatenate the results
     :return:
     """
     print("proceses",multiprocessing.cpu_count())
-    
+    print(params)
     manager=multiprocessing.Manager()
     return_list = manager.list()
     jobs = []
@@ -122,7 +119,7 @@ def run_simulation():
     all_model_agents_df = pd.DataFrame( columns={"AgentID","local_composition", "type", "id", "iter", "f0","f1"})
 
     for f0 in all_f0_f1:
-        p=multiprocessing.Process(target=run_one_simulation, args=(i,f0,return_list ))
+        p=multiprocessing.Process(target=run_one_simulation, args=(i,f0,return_list,params))
         jobs.append(p)
         p.start()
 
@@ -142,7 +139,7 @@ def run_simulation():
     all_model_agents_df = all_model_agents_df.reset_index().set_index([factor, 'Step', 'Id'])
 
 
-    filename_pattern = get_filename_pattern()
+    filename_pattern = get_filename_pattern(factor=factor, num_steps=num_steps,**params  )
     all_models_df.to_pickle("dataframes/models_"+ filename_pattern + time.strftime("%m%d%H%M"))
 
     return(all_models_df)
@@ -173,6 +170,7 @@ fs="eq"
 # test
 #all_f0_f1 = [0.7]
 n_repeats = 1
+num_steps = 80
 # test
 n_repeats=10
 if test:
@@ -182,41 +180,59 @@ if test:
 
 
 for i in range(0,n_repeats):
-   
+
     #for temp in [0.5,0.1,0.01]:
     #for alpha in [0.2,0.1,0.3,1]:
     #for density in [0.85,0.9,0.95]:
     #for radius in [3,6,9,12]:
     #for fs in [0.3,0.5]:
     #for T in [0.65,0.75,0.8]:
-    
+
     #for displacement in [4,8]:
     #for cap_max in [2,1.5,1.01]:
     #for sigma in [0.1,0.3,0.5]:
-    alpha=1
+
+    params_new = {
+    'b': [0, 1, 0.2],
+        'alpha': [0, 1, 0.2],
+        'temp': [0.01,0.1],
+        'radius': [3,6,9,12],
+        'T': [0.65,0.75],
+         'sigma': [0.1,0.3],
+        'residential_steps': [0,80]
+    }
+
+    for key in params_new:
+        params[key] =  params_new[key]
+
+
+    keys = list(params)
+    for values in itertools.product(*map(params.get, keys)):
+        all_models_df = run_simulation(params=dict(zip(keys,values)) )
+
     #for b in [1,0.4,0.2]:
-    for b in [1]:
-
-        for ii in range(0,3):
-            residential_steps=80;
-
-            if test:
-                residential_steps=1;
-            total_steps =residential_steps+num_steps
-            max_steps=total_steps
-    
-            all_models_df = run_simulation()
-
-        for ii in range(0,2):
-            residential_steps =0;
-            total_steps =residential_steps+num_steps
-            max_steps=total_steps
-
-            all_models_df = run_simulation()
-
-
-
-
+    # for b in [1]:
+    #
+    #     for ii in range(0,3):
+    #         residential_steps=80;
+    #
+    #         if test:
+    #             residential_steps=1;
+    #         total_steps =residential_steps+num_steps
+    #         max_steps=total_steps
+    #
+    #         all_models_df = run_simulation()
+    #
+    #     for ii in range(0,2):
+    #         residential_steps =0;
+    #         total_steps =residential_steps+num_steps
+    #         max_steps=total_steps
+    #
+    #         all_models_df = run_simulation()
+    #
+    #
+    #
+    #
 
 
 

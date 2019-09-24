@@ -57,6 +57,8 @@ def run_one_simulation(i,f0, return_list,params):
                             - the datacollector and some addtional parameters
         """
         print(f0)
+        params['f0']=f0
+        params['f1']=f1
         segregation_index=[]
         start_time=time.time()
         model = SchoolModel(**params)
@@ -84,14 +86,12 @@ def run_one_simulation(i,f0, return_list,params):
         length_agents = len(model_out_agents)
 
         model_out['iter'] = np.repeat(i, length)
-        model_out["f0"] = np.repeat(f0, length)
-        model_out["alpha"] = np.repeat(params['alpha'], length)
-        model_out["res"]= np.repeat(params['residential_steps'], length)
+        model_out["f0"] = np.repeat(model.f0, length)
+        model_out["res"]= np.repeat(params[model.residential_steps, length)
 
         model_out_agents['iter'] = np.repeat(i, length_agents)
-        model_out_agents['f0'] = np.repeat(f0, length_agents)
-        model_out_agents["alpha"] = np.repeat(params['alpha'], length_agents)
-        model_out_agents["res"] = np.repeat(params['residential_steps'], length_agents)
+        model_out_agents['f0'] = np.repeat(model.f0, length_agents)
+        model_out_agents["res"] = np.repeat(model.residential_steps, length_agents)
     
         elapsed_time = time.time() - start_time
         print(elapsed_time)
@@ -176,6 +176,9 @@ if test:
     all_f0_f1 = [0.5]
     num_steps=1
 
+if run_one_f:
+    all_f0_f1 = [run_one_f]
+    n_repeats = 1
 
 params_new = {
     'b': [1,0.2,0],
@@ -226,29 +229,6 @@ for i in range(0,n_repeats):
     for values in itertools.product(*map(params.get, keys)):
         all_models_df = run_simulation(params=dict(zip(keys,values)) )
 
-    #for b in [1,0.4,0.2]:
-    # for b in [1]:
-    #
-    #     for ii in range(0,3):
-    #         residential_steps=80;
-    #
-    #         if test:
-    #             residential_steps=1;
-    #         total_steps =residential_steps+num_steps
-    #         max_steps=total_steps
-    #
-    #         all_models_df = run_simulation()
-    #
-    #     for ii in range(0,2):
-    #         residential_steps =0;
-    #         total_steps =residential_steps+num_steps
-    #         max_steps=total_steps
-    #
-    #         all_models_df = run_simulation()
-    #
-    #
-    #
-    #
 
 
 

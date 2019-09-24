@@ -28,9 +28,9 @@ args = parser.parse_args()
 test = args.test; profile=args.profile
 run_one_f = args.run_one_f
 
-def get_filename_pattern(factor,num_steps, minority_pc, M0, M1, temp,height,
+def get_filename_pattern(factor,num_steps, minority_pc, M0, M1, temp,height,width,
         move,symmetric_positions, residential_steps,alpha, density,schelling,
-        school_moves_per_step, residential_moves_per_step, bounded, radius, cap_max, T,fs_print, variable_f,sample,sigma, num_neighbourhoods, schools_per_neighbourhood, displacement,b):
+        school_moves_per_step, residential_moves_per_step, bounded, radius, cap_max, T,fs, variable_f,sample,sigma, num_neighbourhoods, schools_per_neighbourhood, displacement,b,f0,f1):
 
     fs_print = fs
     if fs_print=="eq":
@@ -38,7 +38,7 @@ def get_filename_pattern(factor,num_steps, minority_pc, M0, M1, temp,height,
 
 
     if factor =='f0':
-        filename_pattern="V3fx_%s_m=%.2f_M0=%.2f_M1=%.2f_temp_%.2f_h_%d_st_%d_move_%s_sym_%s_res_%d_a_%.2f_den_%.2f_schell_%s_s_mps_%d_r_mps_%d_bounded_%s_r_%d_cp_%.2f_T_%.2f_fs_%.2f_v%s_s%d_sig%.2f_n%d_sn%d_d%d_b%.2f"%(
+        filename_pattern="V3_2_%s_m=%.2f_M0=%.2f_M1=%.2f_temp_%.2f_h_%d_st_%d_move_%s_sym_%s_res_%d_a_%.2f_den_%.2f_schell_%s_s_mps_%d_r_mps_%d_bounded_%s_r_%d_cp_%.2f_T_%.2f_fs_%.2f_v%s_s%d_sig%.2f_n%d_sn%d_d%d_b%.2f"%(
             factor,minority_pc, M0, M1, temp,height, num_steps,
         move,symmetric_positions, residential_steps,alpha, density,schelling,
         school_moves_per_step, residential_moves_per_step, bounded, radius, cap_max, T,fs_print, str(variable_f)[0],sample,sigma, num_neighbourhoods, schools_per_neighbourhood, displacement,b)
@@ -147,8 +147,6 @@ def run_simulation(params):
 
 
 all_f0_f1 = [0.45,0.55,0.65,0.6,0.7,0.75,0.8,0.85,0.9,0.4,0.5,0.3,0.2]
-if run_one_f:
-    all_f0_f1 = [run_one_f]
     
 
 # test
@@ -172,12 +170,40 @@ fs="eq"
 n_repeats = 1
 num_steps = 80
 # test
-n_repeats=10
+n_repeats=8
 if test:
     n_repeats=1
     all_f0_f1 = [0.5]
     num_steps=1
 
+
+params_new = {
+    'b': [1,0.2,0],
+        'alpha': [1,0.2,0],
+        'temp': [0.1,0.01],
+        'radius': [3,6,9,12],
+        'T': [0.65,0.75,0.85],
+         'sigma': [0.2,0.3,0.1],
+        'residential_steps': [80,0]
+
+    }
+
+if run_one_f:
+    all_f0_f1 = [run_one_f]
+    n_repeats=1
+    params_new = {
+    'b': [1],
+    'alpha': [1],
+    'residential_steps': [80]
+    }
+
+if test:
+    n_repeats=1
+    all_f0_f1 = [0.5]
+    num_steps=1
+    params_new={
+        'residential_steps': [1]
+    }
 
 for i in range(0,n_repeats):
 
@@ -191,16 +217,6 @@ for i in range(0,n_repeats):
     #for displacement in [4,8]:
     #for cap_max in [2,1.5,1.01]:
     #for sigma in [0.1,0.3,0.5]:
-
-    params_new = {
-    'b': [0, 1, 0.2],
-        'alpha': [0, 1, 0.2],
-        'temp': [0.01,0.1],
-        'radius': [3,6,9,12],
-        'T': [0.65,0.75],
-         'sigma': [0.1,0.3],
-        'residential_steps': [0,80]
-    }
 
     for key in params_new:
         params[key] =  params_new[key]

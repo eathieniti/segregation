@@ -76,8 +76,6 @@ def run_one_simulation(i,f0, return_list,return_list_agents, params):
 
         model_out = model.datacollector.get_model_vars_dataframe()
         model_out_agents = model.datacollector.get_agent_vars_dataframe()
-        model_out_agents = model_out_agents[model_out_agents.type==2]
-        model_out_agents = model_out_agents
 
 
         length = len(model_out)
@@ -206,7 +204,7 @@ if test:
     all_f0_f1 = [0.5]
     num_steps=1
     params_new={
-        'residential_steps': [1]
+        'residential_steps': [3]
     }
 
 for i in range(0,n_repeats):

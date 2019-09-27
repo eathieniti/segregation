@@ -38,7 +38,7 @@ def get_filename_pattern(factor,num_steps, minority_pc, M0, M1, temp,height,widt
 
 
     if factor =='f0':
-        filename_pattern="V3_2_%s_m=%.2f_M0=%.2f_M1=%.2f_temp_%.2f_h_%d_st_%d_move_%s_sym_%s_res_%d_a_%.2f_den_%.2f_schell_%s_s_mps_%d_r_mps_%d_bounded_%s_r_%d_cp_%.2f_T_%.2f_fs_%.2f_v%s_s%d_sig%.2f_n%d_sn%d_d%d_b%.2f"%(
+        filename_pattern="V3_fx2_%s_m=%.2f_M0=%.2f_M1=%.2f_temp_%.2f_h_%d_st_%d_move_%s_sym_%s_res_%d_a_%.2f_den_%.2f_schell_%s_s_mps_%d_r_mps_%d_bounded_%s_r_%d_cp_%.2f_T_%.2f_fs_%.2f_v%s_s%d_sig%.2f_n%d_sn%d_d%d_b%.2f"%(
             factor,minority_pc, M0, M1, temp,height, num_steps,
         move,symmetric_positions, residential_steps,alpha, density,schelling,
         school_moves_per_step, residential_moves_per_step, bounded, radius, cap_max, T,fs_print, str(variable_f)[0],sample,sigma, num_neighbourhoods, schools_per_neighbourhood, displacement,b)
@@ -56,9 +56,6 @@ def run_one_simulation(i,f0, return_list,params):
         :return: model_out: pandas dataframe of the model output data
                             - the datacollector and some addtional parameters
         """
-        print(f0)
-        params['f0']=f0
-        params['f1']=f1
         segregation_index=[]
         start_time=time.time()
         model = SchoolModel(**params)
@@ -66,7 +63,7 @@ def run_one_simulation(i,f0, return_list,params):
         # Stop if it did not change enough the last 70 steps
 
         total_steps = params['residential_steps'] + num_steps
-        max_steps=total_steps
+        max_steps=total_steps+30
         while model.running and (model.schedule.steps < total_steps or average_diff>0.05) and model.schedule.steps<max_steps:
             model.step()
             segregation_index.append(model.seg_index)
@@ -86,11 +83,11 @@ def run_one_simulation(i,f0, return_list,params):
         length_agents = len(model_out_agents)
 
         model_out['iter'] = np.repeat(i, length)
-        model_out["f0"] = np.repeat(model.f0, length)
-        model_out["res"]= np.repeat(params[model.residential_steps, length)
+        model_out["f0"] = np.repeat(model.f[0], length)
+        model_out["res"]= np.repeat(model.residential_steps, length)
 
         model_out_agents['iter'] = np.repeat(i, length_agents)
-        model_out_agents['f0'] = np.repeat(model.f0, length_agents)
+        model_out_agents['f0'] = np.repeat(model.f[1], length_agents)
         model_out_agents["res"] = np.repeat(model.residential_steps, length_agents)
     
         elapsed_time = time.time() - start_time
@@ -106,7 +103,6 @@ def run_simulation(params):
     :return:
     """
     print("proceses",multiprocessing.cpu_count())
-    print(params)
     manager=multiprocessing.Manager()
     return_list = manager.list()
     jobs = []
@@ -119,6 +115,9 @@ def run_simulation(params):
     all_model_agents_df = pd.DataFrame( columns={"AgentID","local_composition", "type", "id", "iter", "f0","f1"})
 
     for f0 in all_f0_f1:
+        params['f0'] = f0
+        params['f1'] = f0
+        print(params)
         p=multiprocessing.Process(target=run_one_simulation, args=(i,f0,return_list,params))
         jobs.append(p)
         p.start()
@@ -181,15 +180,18 @@ if run_one_f:
     n_repeats = 1
 
 params_new = {
-    'b': [1,0.2,0],
-        'alpha': [1,0.2,0],
-        'temp': [0.1,0.01],
-        'radius': [3,6,9,12],
-        'T': [0.65,0.75,0.85],
-         'sigma': [0.2,0.3,0.1],
-        'residential_steps': [80,0]
-
-    }
+    #'b': [1,0.2,0],
+        #'alpha': [1,0.2,0],
+        #'b':[0.2,1,0],
+        'alpha':[0,0.4,0.2,0.6,0.8,1],
+        #'b':[0,0.2,0.4,0.6,0.8,1],
+        #'alpha':[0.2,0.4],
+        #'radius': [3,6,9,12],
+        'residential_steps': [100,0],
+        #'temp': [0.1,0.01],
+        #'sigma': [0.3,0.2,0.1],
+        #'T': [0.75,0.65,0.85]
+}
 
 if run_one_f:
     all_f0_f1 = [run_one_f]
@@ -197,7 +199,7 @@ if run_one_f:
     params_new = {
     'b': [1],
     'alpha': [1],
-    'residential_steps': [80]
+    'residential_steps': [100]
     }
 
 if test:

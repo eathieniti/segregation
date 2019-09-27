@@ -24,9 +24,9 @@ parser.add_argument('--params', help='parameters file')
 parser.add_argument('--test', help='run minimum steps to test the file')
 parser.add_argument('--profile', help='Profile code and write stats in a file')
 parser.add_argument('--run_one_f', help='Run one f value only', type=float)
-
+parser.add_argument('--save_agents', help='Save the agents datacollector')
 args = parser.parse_args()
-test = args.test; profile=args.profile
+test = args.test; profile=args.profile; save_agents = args.save_agents
 run_one_f = args.run_one_f
 
 def get_filename_pattern(factor,num_steps, minority_pc, M0, M1, temp,height,width,
@@ -145,7 +145,8 @@ def run_simulation(params):
 
     filename_pattern = get_filename_pattern(factor=factor, num_steps=num_steps,**params  )
     all_models_df.to_pickle("dataframes/models_"+ filename_pattern + time.strftime("%m%d%H%M"))
-    all_model_agents_df.to_pickle("dataframes/agents_"+ filename_pattern + time.strftime("%m%d%H%M"))
+    if save_agents: 
+        all_model_agents_df.to_pickle("dataframes/agents_"+ filename_pattern + time.strftime("%m%d%H%M"))
 
 
     return(all_models_df)
@@ -197,9 +198,7 @@ if run_one_f:
     all_f0_f1 = [run_one_f]
     n_repeats=1
     params_new = {
-    'b': [1],
-    'alpha': [1],
-    'residential_steps': [100]
+    'residential_steps': [100,0]
     }
 
 if test:

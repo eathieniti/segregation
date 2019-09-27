@@ -12,6 +12,7 @@ import os
 import multiprocessing
 import time
 from params import params
+from params_test import params_test
 start_time = time.time()
 import json
 import argparse
@@ -46,7 +47,7 @@ def get_filename_pattern(factor,num_steps, minority_pc, M0, M1, temp,height,widt
     return(filename_pattern)
 
 
-def run_one_simulation(i,f0, return_list,params):
+def run_one_simulation(i,f0, return_list,return_list_agents, params):
 
         """
         Run one simulation of the model and gather the statistics
@@ -93,7 +94,8 @@ def run_one_simulation(i,f0, return_list,params):
         elapsed_time = time.time() - start_time
         print(elapsed_time)
         return_list.append(model_out)
-        return(model_out)
+        return_list_agents.append(model_out_agents)
+
 
 
 
@@ -105,6 +107,7 @@ def run_simulation(params):
     print("proceses",multiprocessing.cpu_count())
     manager=multiprocessing.Manager()
     return_list = manager.list()
+    return_list_agents = manager.list()
     jobs = []
 
     #pool = multiprocessing.Pool(processes=multiprocessing.cpu_count()/4)
@@ -118,7 +121,7 @@ def run_simulation(params):
         params['f0'] = f0
         params['f1'] = f0
         print(params)
-        p=multiprocessing.Process(target=run_one_simulation, args=(i,f0,return_list,params))
+        p=multiprocessing.Process(target=run_one_simulation, args=(i,f0,return_list,return_list_agents,params))
         jobs.append(p)
         p.start()
 
@@ -128,18 +131,22 @@ def run_simulation(params):
     for proc in jobs:
         proc.join()
     
-    
+    print(return_list)
     all_models_df = pd.concat(return_list)
+    all_model_agents_df = pd.concat(return_list_agents)
     print("results",return_list)
 
     all_models_df.index.name = 'Step'
     all_models_df = all_models_df.reset_index().set_index([factor, 'Step'])
+
     all_model_agents_df.index = pd.MultiIndex.from_tuples(all_model_agents_df.index, names=['Step', 'Id'])
     all_model_agents_df = all_model_agents_df.reset_index().set_index([factor, 'Step', 'Id'])
 
 
     filename_pattern = get_filename_pattern(factor=factor, num_steps=num_steps,**params  )
     all_models_df.to_pickle("dataframes/models_"+ filename_pattern + time.strftime("%m%d%H%M"))
+    all_model_agents_df.to_pickle("dataframes/agents_"+ filename_pattern + time.strftime("%m%d%H%M"))
+
 
     return(all_models_df)
 
@@ -156,24 +163,17 @@ average_diff = 10
 factor = "f0"
 fs="eq"
 
-#for T in [0.85,0.9,0.75,0.8,0.85]:
-
-#for temp in [0.02,0.1,1]:
-#for alpha in [0.3,0.4,0.5,0.2]:
-#for density in [0.85,0.9,0.95]:
-#for radius in [3,6,7,9,11]:
-
 
 # test
-#all_f0_f1 = [0.7]
 n_repeats = 1
 num_steps = 80
 # test
 n_repeats=8
 if test:
     n_repeats=1
-    all_f0_f1 = [0.5]
+    all_f0_f1 = [0.5,0.6]
     num_steps=1
+    params = params_test
 
 if run_one_f:
     all_f0_f1 = [run_one_f]
@@ -212,16 +212,7 @@ if test:
 
 for i in range(0,n_repeats):
 
-    #for temp in [0.5,0.1,0.01]:
-    #for alpha in [0.2,0.1,0.3,1]:
-    #for density in [0.85,0.9,0.95]:
-    #for radius in [3,6,9,12]:
-    #for fs in [0.3,0.5]:
-    #for T in [0.65,0.75,0.8]:
 
-    #for displacement in [4,8]:
-    #for cap_max in [2,1.5,1.01]:
-    #for sigma in [0.1,0.3,0.5]:
 
     for key in params_new:
         params[key] =  params_new[key]

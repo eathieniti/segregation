@@ -60,6 +60,9 @@ class SchoolAgent(Agent):
         # TODO: make this indexes
         self.neighbourhood_students = []
 
+
+
+
     def step(self):
         pass
 
@@ -272,18 +275,14 @@ class HouseholdAgent(Agent):
             self.f = model.f[agent_type]
 
         # TODO: extend fs to allow different numbers for different agent types
+        # TODO: fix this to produce like the one above - truncate to 0,1
         if model.fs != "eq":
             self.fs = np.random.normal(model.fs, model.sigma)
         else:
             self.fs = self.f
 
         self.M = model.M[agent_type]
-
-
-
-
         self.T = model.T
-        self.children = 1
         self.school = None
         self.dist_to_school = None
         self.local_composition = None
@@ -308,28 +307,6 @@ class HouseholdAgent(Agent):
         :return:
         """
         self.Dj = Dj
-
-
-
-    #
-    # def calculate_distances(self, Dij):
-    #     '''
-    #     calculate distance between school and household
-    #     Euclidean or gis shortest road route
-    #     :return: dist
-    #     '''
-    #     Dj = np.zeros((len(self.model.school_locations),1))
-    #
-    #     for i, loc in enumerate(self.model.school_locations):
-    #
-    #         Dj[i] = np.linalg.norm(np.array(self.pos)- np.array(loc))
-    #     self.Dj = Dj
-    #
-    #     print("calculating distances", Dj)
-    #
-    #     closer_school_index = np.argmin(self.Dj)
-    #     self.closer_school = self.model.schools[closer_school_index]
-    #
 
 
     def step(self):
@@ -556,13 +533,8 @@ class HouseholdAgent(Agent):
 
 
         boltzmann_probs = []
-        proportional_probs = []
 
-        if self.model.move == "deterministic":
-            proportional_probs = utilities / np.sum(utilities)
-           
-            index_to_move = np.argmax(np.array(proportional_probs))
-        
+
 
         if self.model.move == "proportional":
             np.nan_to_num(utilities, copy=False)
@@ -743,7 +715,7 @@ class HouseholdAgent(Agent):
 
         D = (self.model.max_dist - dist)**self.model.pow / (self.model.max_dist**self.model.pow)
         #print("D", D)
-        U = P**(self.model.alpha) * D**(1-self.model.alpha)
+        U = P ** (self.model.alpha) * D**(1-self.model.alpha)
         #print("P,D,U",P,D,U)
 
         return(U)

@@ -103,12 +103,12 @@ class SchoolModel(Model):
     """
 
 
-    def __init__(self, height=100, width=100, density=0.9, num_neighbourhoods=16, schools_per_neighbourhood=1,minority_pc=0.5, f0=0.6,f1=0.6,\
+    def __init__(self, height=54, width=54, density=0.9, num_neighbourhoods=16, schools_per_neighbourhood=1,minority_pc=0.5, f0=0.6,f1=0.6,\
                  M0=0.8,M1=0.8,T=0.75,
-                 alpha=1, temp=1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
-                 residential_steps=100,schelling=False,bounded=True,
+                 alpha=0.4, temp=0.1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
+                 residential_steps=30,schelling=False,bounded=True,
                  residential_moves_per_step=2000, school_moves_per_step =2000,radius=3,proportional = False,
-                 torus=False,fs="eq", extended_data = False, school_pos=None, agents=None, sample=4, variable_f=True, sigma=0.5, displacement=4,
+                 torus=False,fs="eq", extended_data = False, school_pos=None, agents=None, sample=1, variable_f=True, sigma=0.3, displacement=4,
                  pow=1, b=1):
 
 
@@ -429,10 +429,10 @@ class SchoolModel(Model):
                                  "comp0": "comp0", "comp1": "comp1", "comp2": "comp2", "comp3": "comp3",
                                  "comp4": "comp4", "comp5": "comp5", "comp6": "comp6",
                                  "comp7": "comp7", "compositions": "compositions",
-                                 "collective_utility": "collective_utility"
+                                 "collective_utility": "collective_utility","collective_res_utility":"collective_res_utility"
                                  },
                 agent_reporters={"local_composition": "local_composition", "type": lambda a: a.type,
-                                 "id": lambda a: a.unique_id,
+                                 "id": lambda a: a.unique_id, "school_pos" : lambda a: a.school.pos if hasattr(a, 'school') else None, "dist_to_school": lambda a: a.dist_to_school if hasattr(a, 'dist_to_school') else None,
                                  # "fixed_local_composition": "fixed_local_composition",
                                  # "variable_local_composition": "variable_local_composition",
                                  "pos": "pos"})
@@ -454,9 +454,10 @@ class SchoolModel(Model):
 
         print("height = %d; width = %d; density = %.2f; num_schools = %d; minority_pc =  %.2f; "
               "f0 =  %.2f; f1 =  %.2f; M0 =  %.2f; M1 =  %.2f;\
-        alpha =  %.2f; temp =  %.2f; cap_max =  %.2f; move = %s, symmetric_positions = %s, bounded = %s, radius = %d, schelling = %s"%(height,
+        alpha =  %.2f; temp =  %.2f; cap_max =  %.2f; move = %s, symmetric_positions = %s, bounded = %s, radius = %d, schelling = %s,\
+              b = %.2f "%(height,
          width, density, self.num_schools,minority_pc,f0,f1, M0,M1,alpha,
-                                       temp, cap_max, move, symmetric_positions,bounded, radius, schelling ) )
+                                       temp, cap_max, move, symmetric_positions,bounded, radius, schelling, b ) )
               # Options  for the model
 
 

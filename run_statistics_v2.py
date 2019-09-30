@@ -167,7 +167,7 @@ fs="eq"
 n_repeats = 1
 num_steps = 80
 # test
-n_repeats=8
+n_repeats=6
 if test:
     n_repeats=1
     all_f0_f1 = [0.5,0.6]
@@ -182,13 +182,13 @@ params_new = {
     #'b': [1,0.2,0],
         #'alpha': [1,0.2,0],
         #'b':[0.2,1,0],
-        'alpha':[0,0.4,0.2,0.6,0.8,1],
-        #'b':[0,0.2,0.4,0.6,0.8,1],
+        #'alpha':[0,0.4,0.2,0.6,0.8,1],
+        'b':[0.3,0.2,0.1,0.5,0.6,0.2,0.4],
         #'alpha':[0.2,0.4],
         #'radius': [3,6,9,12],
         'residential_steps': [100,0],
         #'temp': [0.1,0.01],
-        #'sigma': [0.3,0.2,0.1],
+       # 'sigma': [0.3,0.2,0.1],
         #'T': [0.75,0.65,0.85]
 }
 
@@ -201,10 +201,10 @@ if run_one_f:
 
 if test:
     n_repeats=1
-    all_f0_f1 = [0.5]
+    all_f0_f1 = [0.7]
     num_steps=1
     params_new={
-        'residential_steps': [3]
+        'residential_steps': [1]
     }
 
 for i in range(0,n_repeats):

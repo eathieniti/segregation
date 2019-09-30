@@ -149,6 +149,7 @@ class SchoolModel(Model):
         self.school_moves_per_step = school_moves_per_step
 
 
+
         self.num_households = int(width*height*density)
         num_min_households = int(self.minority_pc * self.num_households)
         self.num_neighbourhoods = num_neighbourhoods
@@ -158,6 +159,7 @@ class SchoolModel(Model):
 
         self.schedule = RandomActivation(self)
         self.grid = SingleGrid(height, width, torus=torus)
+        self.start_from_closer_school = True
         self.total_moves = 0
         self.res_moves = 0
 
@@ -377,9 +379,16 @@ class SchoolModel(Model):
         for agent in self.households:
 
             random_school_index = random.randint(0, len(self.schools)-1)
-            #print("school_index", random_school_index, agent.Dj, len(agent.Dj))
+            print("school_index", random_school_index, agent.Dj, len(agent.Dj))
 
+            closer_school = self.get_closer_school_from_position(agent.pos)
+
+            # RANDOM or closer school
             candidate_school = self.schools[random_school_index]
+            if self.start_from_closer_school:
+
+                candidate_school = closer_school
+
             agent.allocate(candidate_school,agent.Dj[random_school_index])
 
 

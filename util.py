@@ -19,12 +19,21 @@ def segregation_index(model, unit = "school" , radius=1):
     pm = [1-model.minority_pc, model.minority_pc]
 
     if unit == "school":
+        all_s = []
+        for s_ind, school in enumerate(model.schools):
+            all_s.append(len(school.students))
 
         for s_ind, school in enumerate(model.schools):
             local_composition = school.get_local_school_composition()
 
             local_compositions[s_ind][:] = local_composition
             pi_jm[s_ind][:] = local_composition / np.sum(local_composition)
+
+        print("school compositions", local_compositions)
+
+        # TODO: move to tests?
+        if np.sum(local_compositions) != model.num_households:
+            print("Error, not all agents counted in segregation index")
 
 
     # this only makes sense in the bounded model 
@@ -33,16 +42,21 @@ def segregation_index(model, unit = "school" , radius=1):
             local_composition = neighbourhood.get_local_neighbourhood_composition()
             local_compositions[s_ind][:] = local_composition
             pi_jm[s_ind][:] = local_composition / np.sum(local_composition)
-        print("compositions",len(local_compositions))
-        print(np.sum(local_compositions))
+        #print("neigh compositions", local_compositions)
+        #print("sum", np.sum(local_compositions))
+
+        # TODO: move to tests?
+        if np.sum(local_compositions) != model.num_households:
+            print("Error, not all agents counted in segregation index")
 
     elif unit == "school_neighbourhood":
         for s_ind, school in enumerate(model.schools):
             local_composition = school.get_local_neighbourhood_composition()
             local_compositions[s_ind][:] = local_composition
             pi_jm[s_ind][:] = local_composition / np.sum(local_composition)
-        print("compositions", len(local_compositions))
-        print(np.sum(local_compositions))
+        #print("school neigh compositions", local_compositions)
+        if np.sum(local_compositions) != model.num_households:
+            print("Error, not all agents counted in segregation index")
 
     elif unit == "agents_neighbourhood":
 
@@ -51,6 +65,7 @@ def segregation_index(model, unit = "school" , radius=1):
 
         for a_ind, household_agent in enumerate(model.households):
             local_composition = household_agent.get_local_neighbourhood_composition(position=household_agent.pos,radius=model.radius)
+
             local_compositions[a_ind][:] = local_composition
             pi_jm[a_ind][:] = local_composition / np.sum(local_composition)
             model.pi_jm = pi_jm
@@ -60,6 +75,24 @@ def segregation_index(model, unit = "school" , radius=1):
             #    print(household_agent.pos,local_composition / np.sum(local_composition), local_composition, np.sum(local_composition))
 
             model.average_like_variable = np.mean(pi_jm[:,0])
+
+    elif unit == "mixed":
+        pi_jm = np.zeros(shape=(len(model.households), len(model.household_types)))
+        local_compositions = np.zeros(shape=(len(model.households), len(model.household_types)))
+
+        for a_ind, household_agent in enumerate(model.households):
+            local_composition_variable = household_agent.get_local_neighbourhood_composition(position=household_agent.pos,
+                                                                                    radius=model.radius)
+            local_composition_bounded = household_agent.get_local_neighbourhood_composition(position=household_agent.pos,radius=None,bounded=True)
+
+            local_composition = np.array(local_composition_bounded) * model.b_ef + np.array(local_composition_variable) * (1-model.b_ef)
+
+            local_compositions[a_ind][:] = local_composition
+            pi_jm[a_ind][:] = local_composition / np.sum(local_composition)
+            model.pi_jm = pi_jm
+            household_agent.variable_local_composition = local_composition
+
+
     elif unit == "fixed_agents_neighbourhood":
 
         pi_jm = np.zeros(shape=(len(model.households), len(model.household_types)))

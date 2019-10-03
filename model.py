@@ -149,7 +149,6 @@ class SchoolModel(Model):
         self.school_moves_per_step = school_moves_per_step
 
 
-
         self.num_households = int(width*height*density)
         num_min_households = int(self.minority_pc * self.num_households)
         self.num_neighbourhoods = num_neighbourhoods
@@ -158,7 +157,7 @@ class SchoolModel(Model):
         self.pm = [self.num_households-num_min_households, num_min_households]
 
         self.schedule = RandomActivation(self)
-        self.grid = SingleGrid(height, width, torus=torus)
+        self.grid = MultiGrid(height, width, torus=torus)
         self.start_from_closer_school = True
         self.total_moves = 0
         self.res_moves = 0
@@ -178,6 +177,7 @@ class SchoolModel(Model):
         self.seg_index = 0
         self.res_seg_index = 0
         self.residential_segregation = 0
+        self.mixed_index = 0
         self.collective_utility = 0
         self.collective_res_utility = 0
         self.comp0,self.comp1,self.comp2,self.comp3,self.comp4,self.comp5,self.comp6,self.comp7, \
@@ -196,8 +196,10 @@ class SchoolModel(Model):
         else:
             self.max_dist = self.height*np.sqrt(2)
 
-        self.n_radius = height / (np.sqrt(num_neighbourhoods)  * 2)
 
+        # Mixed model parameters
+        self.n_radius = height / (np.sqrt(num_neighbourhoods)  * 2)
+        self.b_ef = (self.radius ** 2) / (self.n_radius ** 2) * self.b
 
 
         # Set up agents
@@ -237,7 +239,8 @@ class SchoolModel(Model):
                 for i in range(self.num_neighbourhoods):
                     neighbourhood_positions.append((xloc[i] * height / n, yloc[i] * width / n))
 
-
+        self.closest_school_dist = (np.sqrt(self.num_neighbourhoods) * 2)
+        print("Recommended threshold = %.2f"%(self.closest_school_dist/self.max_dist))
 
         print(neighbourhood_positions)
         #for i in range(self.num_schools):i
@@ -257,6 +260,8 @@ class SchoolModel(Model):
 
             pos = (x,y)
             pos2 =(x+1,y+1)
+            pos2 =(x,y)
+
             pos3 = (-100,-100)
             if schools_per_neighbourhood ==2:
                 pos3 = (x-displacement,y-displacement)
@@ -298,9 +303,9 @@ class SchoolModel(Model):
 
                 self.neighbourhood_locations.append(pos)
                 neighbourhood = NeighbourhoodAgent(pos, self)
-                self.grid.place_agent(neighbourhood, neighbourhood.unique_id)
+                #self.grid.place_agent(neighbourhood, neighbourhood.unique_id)
                 self.neighbourhoods.append(neighbourhood)
-                self.schedule.add(neighbourhood)
+                #self.schedule.add(neighbourhood)
 
             else:
                 print(pos,pos2,pos3, "is found in",do_not_use )
@@ -378,26 +383,18 @@ class SchoolModel(Model):
 
         for agent in self.households:
 
-            random_school_index = random.randint(0, len(self.schools)-1)
-            print("school_index", random_school_index, agent.Dj, len(agent.Dj))
-
-            closer_school = self.get_closer_school_from_position(agent.pos)
-
             # RANDOM or closer school
-            candidate_school = self.schools[random_school_index]
             if self.start_from_closer_school:
-
+                closer_school, closer_school_index = self.get_closer_school_from_position(agent.pos)
                 candidate_school = closer_school
+                distance_to_school = agent.Dj[int(closer_school_index)]
 
-            agent.allocate(candidate_school,agent.Dj[random_school_index])
+            else:
+                random_school_index = random.randint(0, len(self.schools) - 1)
+                distance_to_school = agent.Dj[random_school_index]
+                candidate_school = self.schools[random_school_index]
 
-
-
-            #closer_school = self.schools[p.argmin(Dj)]
-            #closer_school.students.append(agent)
-           # agent.allocate(closer_school, np.min(Dj))
-            #print(agent.school.unique_id)
-
+            agent.reallocate(candidate_school,distance_to_school)
 
 
 
@@ -605,7 +602,9 @@ class SchoolModel(Model):
         school_index = self.closer_school_from_position[x][y]
         school = self.get_school_from_index(school_index)
 
-        return (school)
+        return (school,school_index)
+
+
 
 
 
@@ -630,6 +629,7 @@ class SchoolModel(Model):
 
         return(self.schools[int(school_index)])
 
+
     def get_neighbourhood_from_index(self, neighbourhood_index):
         """
         :param self: obtain the school object using the index
@@ -651,6 +651,9 @@ class SchoolModel(Model):
         for household_index in household_indexes:
             households.append(self.households[household_index])
         return(households)
+
+
+
 
 
     def step(self):
@@ -703,14 +706,42 @@ class SchoolModel(Model):
             self.res_seg_index = segregation_index(self, unit="agents_neighbourhood")
             self.fixed_res_seg_index = segregation_index(self, unit="fixed_agents_neighbourhood", radius=1)
             self.school_neighbourhood_seg_index= segregation_index(self, unit="school_neighbourhood")
+            self.mixed_index = segregation_index(self, unit="mixed")
 
             res_satisfaction = np.mean(self.res_satisfaction)
+            self.collective_res_utility = calculate_res_collective_utility(self)
+
+
+        # Do this at the end of the residential model and before the school model
+        # TODO: move to function initialize schools?
+
+        if self.schedule.steps == (self.residential_steps + 1):
+
+            if self.start_from_closer_school:
+
+                for agent in self.households:
+
+                    random_school_index = random.randint(0, len(self.schools) - 1)
+                    distance_to_school = agent.Dj[random_school_index]
+                    candidate_school = self.schools[random_school_index]
+
+                    closer_school, closer_school_index = self.get_closer_school_from_position(agent.pos)
+                    # RANDOM or closer school
+                    print(int(closer_school_index))
+                    if self.start_from_closer_school:
+                        candidate_school = closer_school
+                        distance_to_school = agent.Dj[int(closer_school_index)]
+
+
+                    agent.reallocate(candidate_school, distance_to_school)
+
 
 
 
         satisfaction =0
         # calculate these after residential_model
-        if self.schedule.steps>self.residential_steps:
+        print(self.schedule.steps,self.residential_steps)
+        if self.schedule.steps>=self.residential_steps:
             self.collective_utility = calculate_collective_utility(self)
             print(self.collective_utility)
             self.seg_index = segregation_index(self)
@@ -720,8 +751,6 @@ class SchoolModel(Model):
 
 
 
-        else:
-            self.collective_res_utility = calculate_res_collective_utility(self)
 
 
 
@@ -730,7 +759,9 @@ class SchoolModel(Model):
               "%.2f"%(self.residential_segregation), "fixed_res_seg_index","%.2f"%(self.fixed_res_seg_index), \
               "res_satisfaction %.2f" %res_satisfaction,"satisfaction %.2f" %satisfaction,\
               "school_neighbourhood %.2f" %self.school_neighbourhood_seg_index,\
-              "average_like_fixed %.2f"%self.average_like_fixed,"average_like_var %.2f"%self.average_like_variable  )
+              "mixed_index %.2f"%self.mixed_index,
+              "average_like_fixed %.2f"%self.average_like_fixed,"average_like_var %.2f"%self.average_like_variable,
+              "collective_res_utility %.2f"%self.collective_res_utility, "collective_utility %.2f"%self.collective_utility)
 
 
         if self.happy == self.schedule.get_agent_count() or self.schedule.steps>200:

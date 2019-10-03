@@ -10,6 +10,8 @@ import random
 from collections import Counter
 from util import segregation_index, calculate_segregation_index, dissimilarity_index, \
     calculate_collective_utility, get_counts_util
+from copy import copy
+
 
 from scipy import stats
 
@@ -65,6 +67,10 @@ class SchoolAgent(Agent):
 
     def step(self):
         pass
+
+
+
+
 
 
 
@@ -145,10 +151,11 @@ class NeighbourhoodAgent(Agent):
     """
 
     def __init__(self, pos, model):
-        super().__init__(pos, model)
+        #super().__init__(pos, model)
 
         self.type = 4
         self.pos = pos
+        self.model = model
 
         # measures
         self.local_composition = [0, 0]
@@ -333,10 +340,6 @@ class HouseholdAgent(Agent):
                 # print("U_res",U_res)
                 if U_res < self.T:
 
-                    # todo: implement different move schemes, for now only random
-                    # find all empty places
-                    # rank them
-                    # take one with boltzmann probability.
                     self.evaluate_move(U_res, school=False)
 
                 else:
@@ -356,6 +359,7 @@ class HouseholdAgent(Agent):
                 # If unhappy, compared to threshold move:
                 if U < self.T:
                     #print('unhappy')
+                    #print("U",U)
                     self.evaluate_move(U, school=True)
 
                 else:
@@ -442,9 +446,8 @@ class HouseholdAgent(Agent):
                     else:
                         y_c += 1
 
-            b_ef = (self.model.radius**2) /  (self.model.n_radius**2) * self.model.b
-            x = np.int(x_b * b_ef + x_c * (1-b_ef))
-            y = np.int(y_b * b_ef + y_c * (1-b_ef))
+            x = np.int(x_b * self.model.b_ef + x_c * (1-self.model.b_ef))
+            y = np.int(y_b * self.model.b_ef + y_c * (1-self.model.b_ef))
 
             # print(x_b,x_c,x)
             # print(y_b,y_c,y)
@@ -456,7 +459,7 @@ class HouseholdAgent(Agent):
 
 
 
-    def get_local_neighbourhood_composition(self, position, radius):
+    def get_local_neighbourhood_composition(self, position, radius,bounded=False):
         """
 
         :param position:
@@ -470,16 +473,19 @@ class HouseholdAgent(Agent):
         # therefore returns type 1 type 2 neighbours and not just like/unlike
         # warning: for now only suitable for 2 gropups
 
+        if bounded:
+            local_composition = self.model.get_closer_neighbourhood_from_position(position).get_local_neighbourhood_composition()
 
-        neighbours = self.model.grid.get_neighbors(position, moore=True, radius=radius)
+        else:
 
-        local_composition = get_counts_util(neighbours, self.model)
+            neighbours = self.model.grid.get_neighbors(position, moore=True, radius=radius)
+            local_composition = get_counts_util(neighbours, self.model)
 
 
         return (local_composition)
 
 
-    def allocate(self, school, dist):
+    def reallocate(self, school, dist):
         """
         Allocates a student to a school
         Updates the school with the new student
@@ -489,6 +495,10 @@ class HouseholdAgent(Agent):
         :return:
         """
 
+        # ensure that student will not be double counted!!!!
+        # remove from the current school
+        if self.school:
+            self.school.students.remove(self)
 
         self.school = school
         school.students.append(self)
@@ -655,14 +665,16 @@ class HouseholdAgent(Agent):
         # only do the actually move if it is really a different school otherwise stay
         if self.model.schools[new_school_index] != self.school:
 
-
-            self.school.students.remove(self)
+            # if self in self.school.students:
+            #     self.school.students.remove(self)
+            # else:
+            #     print("Error student not assigned to a school")
 
             # update metrics for school - could be replaced by +-1
             self.school.get_local_school_composition()
 
             # allocate elsewhere
-            self.allocate(new_school, self.Dj[new_school_index])
+            self.reallocate(new_school, self.Dj[new_school_index])
 
             # now update the new school - self.school is the new school
             self.school.get_local_school_composition()
@@ -714,7 +726,9 @@ class HouseholdAgent(Agent):
         P = self.ethnic_utility(x=x,p=p, f=self.fs,schelling =self.schelling)
 
         D = (self.model.max_dist - dist)**self.model.pow / (self.model.max_dist**self.model.pow)
-        #print("D", D)
+        # if school==self.school:
+        #
+        #     print("D,max,dist", D, self.model.max_dist, dist)dist
         U = P ** (self.model.alpha) * D**(1-self.model.alpha)
         #print("P,D,U",P,D,U)
 

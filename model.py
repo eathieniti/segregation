@@ -240,7 +240,7 @@ class SchoolModel(Model):
                     neighbourhood_positions.append((xloc[i] * height / n, yloc[i] * width / n))
 
         self.closest_school_dist = (np.sqrt(self.num_neighbourhoods) * 2)
-        print("Recommended threshold = %.2f"%(self.closest_school_dist/self.max_dist))
+        print("Recommended threshold = %.2f"%(1-self.closest_school_dist/self.max_dist))
 
         print(neighbourhood_positions)
         #for i in range(self.num_schools):i
@@ -409,6 +409,8 @@ class SchoolModel(Model):
                 model_reporters={"agent_count":
                                      lambda m: m.schedule.get_agent_count(), "seg_index": "seg_index",
                                  "residential_segregation": "residential_segregation", "res_seg_index":  "res_seg_index","fixed_res_seg_index":"fixed_res_seg_index",
+                                 "mixed_index":"mixed_index",
+
                                  "happy": "happy", "percent_happy": "percent_happy",
                                  "total_moves": "total_moves", "res_moves": "res_moves", "compositions0": "compositions0",
                                  "compositions1": "compositions1",
@@ -440,6 +442,8 @@ class SchoolModel(Model):
                                  },
                 agent_reporters={"local_composition": "local_composition", "type": lambda a: a.type,
                                  "id": lambda a: a.unique_id, "school_pos" : lambda a: a.school.pos if hasattr(a, 'school') else None, "dist_to_school": lambda a: a.dist_to_school if hasattr(a, 'dist_to_school') else None,
+                                 "local_neighbourhood_composition": lambda a: a.local_neighbourhood_composition if hasattr(a, 'local_neighbourhood_composition') else None,
+
                                  # "fixed_local_composition": "fixed_local_composition",
                                  # "variable_local_composition": "variable_local_composition",
                                  "pos": "pos"})

@@ -61,7 +61,7 @@ class SchoolAgent(Agent):
         self.capacity = 0
         # TODO: make this indexes
         self.neighbourhood_students = []
-
+        self.local_neighbourhood_composition = [0,0]
 
 
 
@@ -115,6 +115,7 @@ class SchoolAgent(Agent):
         """
 
         local_neighbourhood_composition = get_counts_util(self.neighbourhood_students, self.model)
+        self.local_neighbourhood_composition = local_neighbourhood_composition
         #print("step ",self.model.schedule.steps," neighb students ",len(self.neighbourhood_students))
 
         return (local_neighbourhood_composition)

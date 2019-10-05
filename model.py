@@ -109,7 +109,7 @@ class SchoolModel(Model):
                  residential_steps=30,schelling=False,bounded=True,
                  residential_moves_per_step=2000, school_moves_per_step =2000,radius=3,proportional = False,
                  torus=False,fs="eq", extended_data = False, school_pos=None, agents=None, sample=1, variable_f=True, sigma=0.3, displacement=4,
-                 pow=1, b=1):
+                 pow=1, b=1,start_from_closer_school=False):
 
 
         # Options  for the model
@@ -158,7 +158,7 @@ class SchoolModel(Model):
 
         self.schedule = RandomActivation(self)
         self.grid = MultiGrid(height, width, torus=torus)
-        self.start_from_closer_school = True
+        self.start_from_closer_school = start_from_closer_school
         self.total_moves = 0
         self.res_moves = 0
 
@@ -429,6 +429,7 @@ class SchoolModel(Model):
                                      lambda m: m.schedule.get_agent_count(), "seg_index": "seg_index",
                                  "residential_segregation": "residential_segregation", "res_seg_index": "res_seg_index",
                                  "fixed_res_seg_index": "fixed_res_seg_index",
+                                 "mixed_index":"mixed_index",
                                  "happy": "happy", "percent_happy": "percent_happy",
                                  "total_moves": "total_moves",  "res_moves": "res_moves","compositions0": "compositions0",
                                  "compositions1": "compositions1",

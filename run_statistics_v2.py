@@ -13,11 +13,13 @@ import multiprocessing
 import time
 from params import params
 from params_test import params_test
+from params_compound import params_compound
 start_time = time.time()
 import json
 import argparse
 import cProfile
 import itertools
+from copy import copy
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--params', help='parameters file')
@@ -39,7 +41,7 @@ def get_filename_pattern(factor,num_steps, minority_pc, M0, M1, temp,height,widt
 
 
     if factor =='f0':
-        filename_pattern="V3_fx2_%s_m=%.2f_M0=%.2f_M1=%.2f_temp_%.2f_h_%d_st_%d_move_%s_sym_%s_res_%d_a_%.2f_den_%.2f_schell_%s_s_mps_%d_r_mps_%d_bounded_%s_r_%d_cp_%.2f_T_%.2f_fs_%.2f_v%s_s%d_sig%.2f_n%d_sn%d_d%d_b%.2f"%(
+        filename_pattern="V4_%s_m=%.2f_M0=%.2f_M1=%.2f_temp_%.2f_h_%d_st_%d_move_%s_sym_%s_res_%d_a_%.2f_den_%.2f_schell_%s_s_mps_%d_r_mps_%d_bounded_%s_r_%d_cp_%.2f_T_%.2f_fs_%.2f_v%s_s%d_sig%.2f_n%d_sn%d_d%d_b%.2f"%(
             factor,minority_pc, M0, M1, temp,height, num_steps,
         move,symmetric_positions, residential_steps,alpha, density,schelling,
         school_moves_per_step, residential_moves_per_step, bounded, radius, cap_max, T,fs_print, str(variable_f)[0],sample,sigma, num_neighbourhoods, schools_per_neighbourhood, displacement,b)
@@ -179,24 +181,28 @@ if run_one_f:
     n_repeats = 1
 
 params_new = {
-    #'b': [1,0.2,0],
-        #'alpha': [1,0.2,0],
-        #'b':[0.2,1,0],
-        #'alpha':[0,0.4,0.2,0.6,0.8,1],
-        'b':[0.3,0.2,0.1,0.5,0.6,0.2,0.4],
+    'b': [1],
+    'alpha':[1],
+    'sigma': [0.4,0.3],
+        #'alpha':[0,0.4,0.2,0.6,0.8,1], 
+        #'b':[0.3,0.2,0.1,0.5,0.6,0.2,0.4],
         #'alpha':[0.2,0.4],
-        #'radius': [3,6,9,12],
+        #'radius': [3,6,9],
         'residential_steps': [100,0],
         #'temp': [0.1,0.01],
        # 'sigma': [0.3,0.2,0.1],
-        #'T': [0.75,0.65,0.85]
+       'T': [0.65,0.7]
 }
 
 if run_one_f:
     all_f0_f1 = [run_one_f]
     n_repeats=1
+    # test the compound effect?
     params_new = {
-    'residential_steps': [100,0]
+    # 'T': [0.85],
+    'residential_steps': [100,0],
+    #'b': [1],
+    #'alpha':[0.2,0,0.4],
     }
 
 if test:
@@ -208,9 +214,6 @@ if test:
     }
 
 for i in range(0,n_repeats):
-
-
-
     for key in params_new:
         params[key] =  params_new[key]
 

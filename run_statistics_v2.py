@@ -13,11 +13,13 @@ import multiprocessing
 import time
 from params import params
 from params_test import params_test
+from parameters_baseline import parameters_baseline
 start_time = time.time()
 import json
 import argparse
 import cProfile
 import itertools
+from copy import copy
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--params', help='parameters file')
@@ -132,7 +134,6 @@ def run_simulation(params):
     print(return_list)
     all_models_df = pd.concat(return_list)
     all_model_agents_df = pd.concat(return_list_agents)
-    print("results",return_list)
 
     all_models_df.index.name = 'Step'
     all_models_df = all_models_df.reset_index().set_index([factor, 'Step'])
@@ -143,9 +144,10 @@ def run_simulation(params):
 
     filename_pattern = get_filename_pattern(factor=factor, num_steps=num_steps,**params  )
     all_models_df.to_pickle("dataframes/models_"+ filename_pattern + time.strftime("%m%d%H%M"))
+    print(all_model_agents_df[all_model_agents_df['type']==4])
     if save_agents: 
         all_model_agents_df.to_pickle("dataframes/agents_"+ filename_pattern + time.strftime("%m%d%H%M"))
-
+	
 
     return(all_models_df)
 
@@ -174,9 +176,6 @@ if test:
     num_steps=1
     params = params_test
 
-if run_one_f:
-    all_f0_f1 = [run_one_f]
-    n_repeats = 1
 
 params_new = {
     #'b': [1,0.2,0],
@@ -195,8 +194,14 @@ params_new = {
 if run_one_f:
     all_f0_f1 = [run_one_f]
     n_repeats=1
+    params=copy(parameters_baseline)
     params_new = {
-    'residential_steps': [100,0]
+    'residential_steps': [100],
+    'alpha': [0.9],
+    'sigma':[0.4],
+    'num_neighbourhoods':[64],
+    'T':[0.75],
+    'sample': [5]
     }
 
 if test:
@@ -208,8 +213,6 @@ if test:
     }
 
 for i in range(0,n_repeats):
-
-
 
     for key in params_new:
         params[key] =  params_new[key]

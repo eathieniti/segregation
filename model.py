@@ -104,12 +104,12 @@ class SchoolModel(Model):
 
 
     def __init__(self, height=54, width=54, density=0.9, num_neighbourhoods=16, schools_per_neighbourhood=1,minority_pc=0.5, f0=0.6,f1=0.6,\
-                 M0=0.8,M1=0.8,T=0.75,
+                 M0=0.8,M1=0.8,T=0.65,
                  alpha=0.4, temp=0.1, cap_max=1.01, move="boltzmann", symmetric_positions=True,
                  residential_steps=30,schelling=False,bounded=True,
                  residential_moves_per_step=2000, school_moves_per_step =2000,radius=3,proportional = False,
                  torus=False,fs="eq", extended_data = False, school_pos=None, agents=None, sample=1, variable_f=True, sigma=0.3, displacement=4,
-                 pow=1, b=1):
+                 pow=1, b=1,start_from_closer_school=False):
 
 
         # Options  for the model
@@ -158,7 +158,7 @@ class SchoolModel(Model):
 
         self.schedule = RandomActivation(self)
         self.grid = MultiGrid(height, width, torus=torus)
-        self.start_from_closer_school = True
+        self.start_from_closer_school = start_from_closer_school
         self.total_moves = 0
         self.res_moves = 0
 
@@ -199,7 +199,15 @@ class SchoolModel(Model):
 
         # Mixed model parameters
         self.n_radius = height / (np.sqrt(num_neighbourhoods)  * 2)
-        self.b_ef = (self.radius ** 2) / (self.n_radius ** 2) * self.b
+        if self.b not in [0,1]:
+            self.b_ef = (self.radius ** 2) / (self.n_radius ** 2) * self.b
+            print((self.radius ** 2) / (self.n_radius ** 2) * self.b)
+            print(np.float(self.radius ** 2) / (self.n_radius ** 2) * self.b)
+
+
+        else:
+            self.b_ef = self.b
+        print("b",self.b,"b_ef",self.b_ef)
 
 
         # Set up agents
@@ -230,7 +238,6 @@ class SchoolModel(Model):
             elif self.num_neighbourhoods in [25, 64, 16]:
                 neighbourhood_positions = []
                 n=int(np.sqrt( self.num_neighbourhoods)*2)
-                print(n)
                 x1 = range(1,int(n+1),2)
 
                 xloc = np.repeat(x1, int(n/2))
@@ -242,7 +249,6 @@ class SchoolModel(Model):
         self.closest_school_dist = (np.sqrt(self.num_neighbourhoods) * 2)
         print("Recommended threshold = %.2f"%(1-self.closest_school_dist/self.max_dist))
 
-        print(neighbourhood_positions)
         #for i in range(self.num_schools):i
         i=0
         while len(self.neighbourhoods)<self.num_neighbourhoods:
@@ -443,7 +449,6 @@ class SchoolModel(Model):
                 agent_reporters={"local_composition": "local_composition", "type": lambda a: a.type,
                                  "id": lambda a: a.unique_id, "school_pos" : lambda a: a.school.pos if hasattr(a, 'school') else None, "dist_to_school": lambda a: a.dist_to_school if hasattr(a, 'dist_to_school') else None,
                                  "local_neighbourhood_composition": lambda a: a.local_neighbourhood_composition if hasattr(a, 'local_neighbourhood_composition') else None,
-
                                  # "fixed_local_composition": "fixed_local_composition",
                                  # "variable_local_composition": "variable_local_composition",
                                  "pos": "pos"})

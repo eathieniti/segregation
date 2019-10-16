@@ -199,7 +199,8 @@ class SchoolModel(Model):
 
         # Mixed model parameters
         self.n_radius = height / (np.sqrt(num_neighbourhoods)  * 2)
-        if self.b not in [0,1]:
+        
+	if self.b not in [0,1]:
             self.b_ef = (self.radius ** 2) / (self.n_radius ** 2) * self.b
             print((self.radius ** 2) / (self.n_radius ** 2) * self.b)
             print(np.float(self.radius ** 2) / (self.n_radius ** 2) * self.b)
@@ -207,7 +208,7 @@ class SchoolModel(Model):
 
         else:
             self.b_ef = self.b
-        print("b",self.b,"b_ef",self.b_ef)
+        print("b",self.b,"b_ef",self.b_ef) 
 
 
         # Set up agents

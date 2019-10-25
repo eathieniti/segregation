@@ -70,7 +70,7 @@ run_one_f = args.run_one_f
 all_f0_f1 = [0.45, 0.55, 0.65, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9, 0.4, 0.5, 0.3, 0.2]
 
 
-def run_simulation(params, num_steps,return_list, save_agents=False):
+def run_simulation(params, num_steps,return_list, prefix,save_agents=False):
     """
     Run the model for multiple f0 and concatenate the results
     :return:
@@ -98,11 +98,10 @@ def run_simulation(params, num_steps,return_list, save_agents=False):
     all_model_agents_df.index = pd.MultiIndex.from_tuples(all_model_agents_df.index, names=['Step', 'Id'])
     all_model_agents_df = all_model_agents_df.reset_index().set_index([factor, 'Step', 'Id'])
 
-    filename_pattern = get_filename_pattern( num_steps=num_steps,**params  )
-    all_models_df.to_pickle("dataframes/models_"+ filename_pattern + time.strftime("%m%d%H%M"))
+    filename_pattern = get_filename_pattern( prefix =prefix,num_steps=num_steps,**params )
+    all_models_df.to_pickle("dataframes_full/models_"+ filename_pattern + time.strftime("%m%d%H%M"))
 
     output = all_models_df.tail(1)
-    #output = [all_models_df.seg_index.tail(1), all_models_df.residential_segregation.tail(1),all_models_df.mixed_index.tail(1),  all_models_df.res_seg_index.tail(1)]
     return_list.append(output)
     return (output)
 
@@ -181,14 +180,17 @@ def run_sensitivity_parallel(params, params_new_values, params_new_keys, num_ste
         for values in itertools.product(*map(params.get, keys)):
             #p = multiprocessing.Process(target=run_simulation, args=(params=dict(zip(keys, values)),num_steps=num_steps))
             params_to_pass = dict(zip(keys, values))
-            p = multiprocessing.Process(target=run_simulation, args=(params_to_pass, num_steps, return_list))
+            p = multiprocessing.Process(target=run_simulation, args=(params_to_pass, num_steps, return_list, i))
+
 
             print(dict(zip(keys, values)))
         jobs.append(p)
-        p.start()
-        i+=1
-    for proc in jobs:
-        proc.join()
+
+    for chunk in chunks(jobs,35):
+        for proc in chunk:
+            proc.start()
+        for proc in chunk:
+            proc.join()
 
 
 
@@ -201,6 +203,10 @@ def run_sensitivity_parallel(params, params_new_values, params_new_keys, num_ste
 
 
 
+
+def chunks(l, n):
+    for i in range(0, len(l), n):
+        yield l[i:i + n]
 
 
 segregation_problem = {
@@ -220,10 +226,10 @@ params['residential_steps'] = [80]
 
 
 if test:
-    num_steps=30
-    params['residential_steps']=[30]
-    #params['height']=[25]
-    #params['width'] = [25]
+    num_steps=1
+    params['residential_steps']=[1]
+    params['height']=[25]
+    params['width'] = [25]
     params['sample']=[5]
 
 

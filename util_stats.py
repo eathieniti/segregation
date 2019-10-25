@@ -26,16 +26,16 @@ from copy import copy
 
 def get_filename_pattern(num_steps, minority_pc, M0, M1, temp,height,width,
         move,symmetric_positions, residential_steps,alpha, density,schelling,
-        school_moves_per_step, residential_moves_per_step, bounded, radius, cap_max, T,fs, variable_f,sample,sigma, num_neighbourhoods, schools_per_neighbourhood, displacement,b,f0,f1):
+        school_moves_per_step, residential_moves_per_step, bounded, radius, cap_max, T,fs, variable_f,sample,sigma, num_neighbourhoods, schools_per_neighbourhood, displacement,b,f0,f1, prefix=""):
 
     fs_print = fs
     if fs_print=="eq":
         fs_print= 0
 
-
+    print("prefix", prefix)
     factor="f0"
-    filename_pattern="V4_%s_m=%.2f_M0=%.2f_M1=%.2f_temp_%.2f_h_%d_st_%d_move_%s_sym_%s_res_%d_a_%.2f_den_%.2f_schell_%s_s_mps_%d_r_mps_%d_bounded_%s_r_%d_cp_%.2f_T_%.2f_fs_%.2f_v%s_s%d_sig%.2f_n%d_sn%d_d%d_b%.2f"%(
-        factor,minority_pc, M0, M1, temp,height, num_steps,
+    filename_pattern="%s_V4_%s_m=%.2f_M0=%.2f_M1=%.2f_temp_%.2f_h_%d_st_%d_move_%s_sym_%s_res_%d_a_%.2f_den_%.2f_schell_%s_s_mps_%d_r_mps_%d_bounded_%s_r_%d_cp_%.2f_T_%.2f_fs_%.2f_v%s_s%d_sig%.2f_n%d_sn%d_d%d_b%.2f"%(
+        prefix,factor,minority_pc, M0, M1, temp,height, num_steps,
         move,symmetric_positions, residential_steps,alpha, density,schelling,
         school_moves_per_step, residential_moves_per_step, bounded, radius, cap_max, T,fs_print, str(variable_f)[0],sample,sigma, num_neighbourhoods, schools_per_neighbourhood, displacement,b)
 

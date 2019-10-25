@@ -191,48 +191,57 @@ def run_sensitivity_parallel(params, params_new_values, params_new_keys, num_ste
         proc.join()
 
 
-    for ii in return_list:
-        print("new",ii)
 
     Y = pd.concat(return_list)
+    filename_pattern = get_filename_pattern( num_steps=num_steps,**params_to_pass  )
 
-    print("return_list", return_list)
-    with open("dataframes/"+ "sensitivity"+time.strftime("%Y-%m-%d-%H_%M"),'wb') as f:
+    with open("dataframes/"+ "sensitivity"+ filename_pattern + time.strftime("%Y-%m-%d-%H_%M"),'wb') as f:
         pickle.dump(Y, f)
+    print(np.shape(Y))
 
 
 
 
 
 segregation_problem = {
-    'num_vars': 4,
-    'names': ['T', 'b', 'alpha','f0'],
+    'num_vars': 5,
+    'names': ['T', 'b', 'alpha','f0','radius'],
     'bounds': [[0.65,0.85],
                [0.01,0.5],
                [0.01,0.5],
-              [0.4,0.9]]}
+              [0.4,0.9],
+              [2,9]]}
 
-params['residential_steps'] = [80]
-
-#
 num_steps = 100
 
 params = copy(parameters)
+params['residential_steps'] = [80]
+
+
+
 if test:
-    num_steps=1
+    num_steps=30
+    params['residential_steps']=[30]
+    #params['height']=[25]
+    #params['width'] = [25]
+    params['sample']=[5]
 
-    params['residential_steps']=[1]
-    params['height']=[25]
-    params['width'] = [25]
-    params['sample']=[10]
 
-new_param_values = saltelli.sample(segregation_problem, 10)
+#if test:
+#    num_steps=1
+#    params['residential_steps']=[1]
+#    params['height']=[25]
+#    params['width'] = [25]
+#    params['sample']=[10]
+
+
+new_param_values = saltelli.sample(segregation_problem, 50)
 print("simulations ",(np.shape(new_param_values)))
 run_sensitivity_parallel(params,new_param_values, segregation_problem['names'], num_steps)
 
-run_name = "100"
+run_name = "fin"
 
-with open("dataframes/" + "sensitivity_parameters" + run_name + time.strftime("%Y-%m-%d-%H_%M"), 'wb') as f:
+with open("dataframes/" + "sensitivity_parameters" + run_name + "test_" + str(test)  + time.strftime("%Y-%m-%d-%H_%M"), 'wb') as f:
     pickle.dump(segregation_problem, f)
 
 

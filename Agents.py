@@ -168,25 +168,6 @@ class NeighbourhoodAgent(Agent):
         pass
 
 
-    def get_local_school_composition(self):
-        """
-        Gets composition of the school, number of agents allocated to the school for each type
-        Sets the local composition attribute
-        Sets the current capacity
-        TODO: probably not needed to calculate and update every time this is called
-
-        :return: local composition [number of type 0 agents, number of type 1 agents]
-        """
-        # get the composition of the students in the neighbourhood
-
-        local_composition = get_counts_util(students=self.students, model=self.model)
-
-        self.local_composition = local_composition
-
-        self.current_capacity = np.sum(self.local_composition)
-
-        return(local_composition)
-
 
     def get_local_neighbourhood_composition(self):
 

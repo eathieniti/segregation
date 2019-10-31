@@ -125,7 +125,7 @@ class SchoolModel(Model):
         self.bounded = bounded
         self.cap_max=float(cap_max)
         self.T = T
-        self.radius = radius
+        self.radius = int(radius)
         self.household_types = [0, 1] # majority, minority, important !!
         self.symmetric_positions = symmetric_positions
         self.schelling=schelling
@@ -200,7 +200,7 @@ class SchoolModel(Model):
         # Mixed model parameters
         self.n_radius = height / (np.sqrt(num_neighbourhoods)  * 2)
         
-	if self.b not in [0,1]:
+        if self.b not in [0,1]:
             self.b_ef = (self.radius ** 2) / (self.n_radius ** 2) * self.b
             print((self.radius ** 2) / (self.n_radius ** 2) * self.b)
             print(np.float(self.radius ** 2) / (self.n_radius ** 2) * self.b)
@@ -445,6 +445,7 @@ class SchoolModel(Model):
                                  "comp0": "comp0", "comp1": "comp1", "comp2": "comp2", "comp3": "comp3",
                                  "comp4": "comp4", "comp5": "comp5", "comp6": "comp6",
                                  "comp7": "comp7", "compositions": "compositions",
+                                 "neighbourhood_compositions": "neighbourhood_compositions",
                                  "collective_utility": "collective_utility","collective_res_utility":"collective_res_utility"
                                  },
                 agent_reporters={"local_composition": "local_composition", "type": lambda a: a.type,
@@ -723,6 +724,16 @@ class SchoolModel(Model):
             self.collective_res_utility = calculate_res_collective_utility(self)
 
 
+
+            # Collect the compositions of the neighbourhoods
+            neighbourhood_compositions = []
+            for neighbourhood in self.neighbourhoods:
+                neighbourhood_compositions.append(neighbourhood.get_local_neighbourhood_composition()[0])
+                neighbourhood_compositions.append(neighbourhood.get_local_neighbourhood_composition()[1])
+
+            self.neighbourhood_compositions = neighbourhood_compositions
+            print(neighbourhood_compositions)
+
         # Do this at the end of the residential model and before the school model
         # TODO: move to function initialize schools?
 
@@ -788,13 +799,16 @@ class SchoolModel(Model):
         # remove this?
         for school in self.schools:
             self.my_collector.append([self.schedule.steps, school.unique_id, school.get_local_school_composition()])
-            self.compositions = school.get_local_school_composition()
+
             compositions.append(school.get_local_school_composition()[0])
             compositions.append(school.get_local_school_composition()[1])
 
             self.compositions1 = int(school.get_local_school_composition()[1])
             self.compositions0 = int(school.get_local_school_composition()[0])
             #print("school_students",school.neighbourhood_students)
+
+            # remove this?
+
 
         #print("comps",compositions,np.sum(compositions) )
         [self.comp0,self.comp1,self.comp2,self.comp3,self.comp4,self.comp5,self.comp6,self.comp7] = compositions[0:8]

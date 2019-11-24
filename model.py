@@ -186,9 +186,10 @@ class SchoolModel(Model):
         self.pi_jm = []
         self.pi_jm_fixed = []
         self.compositions = []
+        self.neighbourhood_compositions = []
         self.average_like_fixed = 0
         self.average_like_variable = 0
-
+        self.dist_to_school = []
 
         self.my_collector = []
         if torus:
@@ -423,7 +424,8 @@ class SchoolModel(Model):
                                  "compositions1": "compositions1",
                                          "comp0": "comp0", "comp1": "comp1", "comp2": "comp2", "comp3": "comp3", "comp4": "comp4", "comp5": "comp5", "comp6": "comp6",
                                  "comp7": "comp7","compositions": "compositions",
-                                 "collective_utility":"collective_utility", "collective_res_utility":"collective_res_utility"
+                                 "collective_utility":"collective_utility", "collective_res_utility":"collective_res_utility",
+                                 "dist_to_school":"dist_to_school"
                                  },
                 agent_reporters={"local_composition": "local_composition", "type": lambda a: a.type,
                                  "id": lambda a: a.unique_id,
@@ -446,7 +448,8 @@ class SchoolModel(Model):
                                  "comp4": "comp4", "comp5": "comp5", "comp6": "comp6",
                                  "comp7": "comp7", "compositions": "compositions",
                                  "neighbourhood_compositions": "neighbourhood_compositions",
-                                 "collective_utility": "collective_utility","collective_res_utility":"collective_res_utility"
+                                 "collective_utility": "collective_utility","collective_res_utility":"collective_res_utility",
+                                 "dist_to_school":"dist_to_school"
                                  },
                 agent_reporters={"local_composition": "local_composition", "type": lambda a: a.type,
                                  "id": lambda a: a.unique_id, "school_pos" : lambda a: a.school.pos if hasattr(a, 'school') else None, "dist_to_school": lambda a: a.dist_to_school if hasattr(a, 'dist_to_school') else None,
@@ -823,6 +826,10 @@ class SchoolModel(Model):
 
 
 
+        # Some custom data collection
+
+        if self.schedule.steps > (self.residential_steps +79):
+            self.dist_to_school = [ i.dist_to_school for i in self.households[::2] ]
 
 
 

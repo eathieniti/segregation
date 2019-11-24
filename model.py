@@ -456,6 +456,7 @@ class SchoolModel(Model):
                                  "local_neighbourhood_composition": lambda a: a.local_neighbourhood_composition if hasattr(a, 'local_neighbourhood_composition') else None,
                                  # "fixed_local_composition": "fixed_local_composition",
                                  # "variable_local_composition": "variable_local_composition",
+                                 "school_satisfaction":"school_satisfaction","residential_satisfaction":"residential_satisfaction",
                                  "pos": "pos"})
 
 
@@ -828,8 +829,13 @@ class SchoolModel(Model):
 
         # Some custom data collection
 
-        if self.schedule.steps > (self.residential_steps +79):
+        if self.schedule.steps > (self.residential_steps+78 ):
             self.dist_to_school = [ i.dist_to_school for i in self.households[::2] ]
+
+            for h in self.households:
+                h.school_satisfaction = h.get_school_satisfaction(h.school, h.dist_to_school)
+                h.residential_satisfaction = h.get_res_satisfaction(h.pos)
+
 
 
 

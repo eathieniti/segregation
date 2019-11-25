@@ -286,7 +286,11 @@ class HouseholdAgent(Agent):
         self.schelling = self.model.schelling
         self.school_utilities = []
         self.residential_utilities = []
-
+        self.school_satisfaction = None
+        self.residential_satisfaction = None
+        self.ethnic_satisfaction = None
+        self.distance_satisfaction = None
+        self.res_ethnic_satisfaction = None
 
     def update_distance_to_schools(self, Dj):
         """
@@ -335,7 +339,7 @@ class HouseholdAgent(Agent):
             if self.model.total_considered < self.model.school_moves_per_step:
             # school moves
                 # satisfaction in current school
-                U = self.get_school_satisfaction(self.school, self.dist_to_school)
+                U,P,D = self.get_school_satisfaction(self.school, self.dist_to_school)
                 self.model.satisfaction.append(U)
 
                 # If unhappy, compared to threshold move:
@@ -562,7 +566,7 @@ class HouseholdAgent(Agent):
             # TODO: it would be safer to check that the Dj is for the actual school,
             #   use the positions of the school and make an NXN array for Dj
             if candidate_school.current_capacity <= (candidate_school.capacity):
-                U_candidate = self.get_school_satisfaction(candidate_school, dist=self.Dj[school_index])
+                U_candidate,P,D = self.get_school_satisfaction(candidate_school, dist=self.Dj[school_index])
                 utilities.append(U_candidate)
 
             else:
@@ -714,7 +718,7 @@ class HouseholdAgent(Agent):
         U = P ** (self.model.alpha) * D**(1-self.model.alpha)
         #print("P,D,U",P,D,U)
 
-        return(U)
+        return(U,P,D)
 
 
     def ethnic_utility(self, x, p, f, schelling=False):

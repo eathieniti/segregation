@@ -29,9 +29,11 @@ def segregation_index(model, unit = "school" , radius=1):
             local_compositions[s_ind][:] = local_composition
             pi_jm[s_ind][:] = local_composition / np.sum(local_composition)
 
-        print("school compositions", local_compositions)
+        #print("school compositions", local_compositions)
 
         # TODO: move to tests?
+        print("total students in schools ",np.sum(local_compositions))
+
         if np.sum(local_compositions) != model.num_households:
             print("Error, not all agents counted in segregation index")
 
@@ -43,7 +45,7 @@ def segregation_index(model, unit = "school" , radius=1):
             local_compositions[s_ind][:] = local_composition
             pi_jm[s_ind][:] = local_composition / np.sum(local_composition)
         #print("neigh compositions", local_compositions)
-        #print("sum", np.sum(local_compositions))
+        print("total students in neighbourhood", np.sum(local_compositions))
 
         # TODO: move to tests?
         if np.sum(local_compositions) != model.num_households:
@@ -55,6 +57,7 @@ def segregation_index(model, unit = "school" , radius=1):
             local_compositions[s_ind][:] = local_composition
             pi_jm[s_ind][:] = local_composition / np.sum(local_composition)
         #print("school neigh compositions", local_compositions)
+        print("total students in schools ",np.sum(local_compositions))
         if np.sum(local_compositions) != model.num_households:
             print("Error, not all agents counted in segregation index")
 
@@ -191,7 +194,7 @@ def calculate_collective_utility(model):
     utilities = []
 
     for household in  model.households:
-        sat = household.get_school_satisfaction(household.school, household.dist_to_school)
+        sat, p, d= household.get_school_satisfaction(household.school, household.dist_to_school)
         utilities.append(sat)
 
     print(np.mean(utilities))

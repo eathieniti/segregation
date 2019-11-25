@@ -457,6 +457,7 @@ class SchoolModel(Model):
                                  # "fixed_local_composition": "fixed_local_composition",
                                  # "variable_local_composition": "variable_local_composition",
                                  "school_satisfaction":"school_satisfaction","residential_satisfaction":"residential_satisfaction",
+                                 "ethnic_satisfaction":"ethnic_satisfaction", "distance_satisfaction":"distance_satisfaction",
                                  "pos": "pos"})
 
 
@@ -829,11 +830,11 @@ class SchoolModel(Model):
 
         # Some custom data collection
 
-        if self.schedule.steps > (self.residential_steps+78 ):
+        if self.schedule.steps > (self.residential_steps ):
             self.dist_to_school = [ i.dist_to_school for i in self.households[::2] ]
 
             for h in self.households:
-                h.school_satisfaction = h.get_school_satisfaction(h.school, h.dist_to_school)
+                h.school_satisfaction, h.ethnic_satisfaction, h.distance_satisfaction = h.get_school_satisfaction(h.school, h.dist_to_school)
                 h.residential_satisfaction = h.get_res_satisfaction(h.pos)
 
 

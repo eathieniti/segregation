@@ -830,7 +830,7 @@ class SchoolModel(Model):
 
         # Some custom data collection
 
-        if self.schedule.steps > (self.residential_steps ):
+        if self.schedule.steps > (self.residential_steps +78):
             self.dist_to_school = [ i.dist_to_school for i in self.households[::2] ]
 
             for h in self.households:

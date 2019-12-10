@@ -458,7 +458,7 @@ class SchoolModel(Model):
                                  # "variable_local_composition": "variable_local_composition",
                                  "school_satisfaction":"school_satisfaction","residential_satisfaction":"residential_satisfaction",
                                  "ethnic_satisfaction":"ethnic_satisfaction", "distance_satisfaction":"distance_satisfaction",
-                                 "pos": "pos"})
+                                 "pos": "pos", "f":"f"})
 
 
 
